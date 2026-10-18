@@ -18,8 +18,8 @@
       {
         "id": "resolution-640x400",
         "title": {"ru": "Исправление разрешения 640×400", "en": "640×400 resolution fix"},
-        "description": {"ru": "Исправление недоступности разрешения 640×400. Реализация ещё не добавлена.", "en": "Fix the unavailable 640×400 resolution. Implementation is pending."},
-        "roles": ["main"], "dependencies": [], "conflicts": [], "implemented": false
+        "description": {"ru": "Исправляет выбор VESA-режима: -r1 включает 640×400, -r2 сохраняет 640×480. Проверяется контекстная сигнатура RUS/ENG.", "en": "Fix VESA mode selection: -r1 selects 640×400; -r2 keeps 640×480. Validates the RUS/ENG contextual signature."},
+        "roles": ["main"], "dependencies": [], "conflicts": [], "implemented": true
       },
       {
         "id": "render-optimization",

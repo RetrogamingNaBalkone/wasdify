@@ -18,17 +18,19 @@ checks, safe file replacement and optional backups are implemented. Both
 interfaces support Russian and English.
 
 The first game is **Dungeons of Kremlin / Подземелья Кремля**. The catalog includes
-Russian `PKR.EXE` and English `PKE.EXE`. All three game patches are **placeholders**:
+Russian `PKR.EXE` and English `PKE.EXE`. The first real patch is implemented:
 
-| Patch | ID |
-|---|---|
-| WASD controls | `wasd` |
-| Unavailable 640×400 resolution fix | `resolution-640x400` |
-| Render optimization | `render-optimization` |
+| Patch | ID | Status |
+|---|---|---|
+| WASD controls | `wasd` | Placeholder |
+| `-r1`: 640×400 instead of 640×480 | `resolution-640x400` | Implemented for RUS/ENG |
+| Render optimization | `render-optimization` | Placeholder |
 
-Selecting one returns `not_implemented` and exit code `5`. No game bytes or
-backups are written. Actual game signatures have not been researched yet;
-filenames and MZ headers alone do not establish compatibility.
+Selecting a placeholder returns `not_implemented` and exit code `5`, blocking
+the entire selected set. The resolution patch changes one byte after validating
+a unique NE code signature; repeat application is a no-op. Both versions were
+analyzed and emulated; visual DOSBox testing is pending.
+See the [analysis and limits](docs/games/dungeons-of-kremlin/analysis.md).
 
 ## Install
 
@@ -88,16 +90,17 @@ After activating the venv, or using the full command path:
 wasdify --lang en games
 wasdify detect "C:\Games\Kremlin\PKE.EXE"
 wasdify patches --game dungeons-of-kremlin
-wasdify plan "C:\Games\Kremlin\PKE.EXE" --patch wasd --patch resolution-640x400
-wasdify apply "C:\Games\Kremlin\PKE.EXE" --patch wasd
+wasdify plan "C:\Games\Kremlin\PKE.EXE" --patch resolution-640x400
+wasdify apply "C:\Games\Kremlin\PKE.EXE" --patch resolution-640x400
 wasdify gui
 python -m wasdify --help
 ```
 
 `plan` never writes files. `apply` revalidates the set before writing. For an
 unknown EXE, `--game dungeons-of-kremlin` supplies the analysis context without
-bypassing patch checks. Automatic identification of unknown versions requires
-a future signature-based game probe.
+bypassing patch checks. The resolution probe recognizes compatible original
+and patched code regardless of filename or whole-file hash. Run the patched
+game with `-r1` in DOS/DOSBox; `-r2` remains 640×480.
 
 `--lang ru|en` and `--json` work before or after the subcommand. The default
 language follows the system locale: Russian for `ru`, English otherwise.

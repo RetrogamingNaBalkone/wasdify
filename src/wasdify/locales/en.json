@@ -82,6 +82,6 @@
   "selection_changed": "Selection changed. Check the selected set before applying.",
   "working": "Working…",
   "all_files": "All files",
-  "executables": "Executables"
+  "executables": "Executables",
+  "unsupported_executable": "The file is not a supported 16-bit NE executable, or its segment table is damaged."
 }
-
