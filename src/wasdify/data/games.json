@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "games": [{
+    "id": "dungeons-of-kremlin",
+    "title": {"ru": "Подземелья Кремля", "en": "Dungeons of Kremlin"},
+    "roles": ["main"],
+    "versions": [
+      {"id": "rus-pkr", "language": "ru", "filename": "PKR.EXE", "size": 324824, "sha256": "12f78afc0eba05f76b5dc0bb99da38d7daa20585024c0ba958fe828aa3864d28"},
+      {"id": "eng-pke", "language": "en", "filename": "PKE.EXE", "size": 340616, "sha256": "cce7bc5993d0734ad87e93db37a70b8b52faedfff14ac48d6e317e5ac996a37b"}
+    ],
+    "patches": [
+      {
+        "id": "wasd",
+        "title": {"ru": "WASD-управление", "en": "WASD controls"},
+        "description": {"ru": "Современная раскладка движения WASD. Реализация ещё не добавлена.", "en": "Modern WASD movement layout. Implementation is pending."},
+        "roles": ["main"], "dependencies": [], "conflicts": [], "implemented": false
+      },
+      {
+        "id": "resolution-640x400",
+        "title": {"ru": "Исправление разрешения 640×400", "en": "640×400 resolution fix"},
+        "description": {"ru": "Исправление недоступности разрешения 640×400. Реализация ещё не добавлена.", "en": "Fix the unavailable 640×400 resolution. Implementation is pending."},
+        "roles": ["main"], "dependencies": [], "conflicts": [], "implemented": false
+      },
+      {
+        "id": "render-optimization",
+        "title": {"ru": "Оптимизация рендера", "en": "Render optimization"},
+        "description": {"ru": "Оптимизация отрисовки с сохранением исходного вида игры. Реализация ещё не добавлена.", "en": "Optimize rendering while preserving the original appearance. Implementation is pending."},
+        "roles": ["main"], "dependencies": [], "conflicts": [], "implemented": false
+      }
+    ]
+  }]
+}
+

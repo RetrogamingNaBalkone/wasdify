@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "wasdify"
+version = "0.1.0"
+description = "Targeted binary patches for classic games"
+readme = "README.en.md"
+requires-python = ">=3.11"
+license = {text = "MIT"}
+authors = [{name = "RetrogamingNaBalkone"}]
+dependencies = []
+
+[project.optional-dependencies]
+exe = ["pyinstaller>=6.16,<7"]
+
+[project.scripts]
+wasdify = "wasdify.cli:main"
+
+[project.gui-scripts]
+wasdify-gui = "wasdify.cli:gui_main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+wasdify = ["data/*.json", "locales/*.json"]
+
