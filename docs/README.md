@@ -1,6 +1,7 @@
 # Документация WASDify
 
 - [Архитектура, контракты и расширение](architecture.md)
+- [Бэклог](backlog.md)
 - [Подземелья Кремля / Dungeons of Kremlin](games/dungeons-of-kremlin/README.md)
 - [Установка и использование](../README.md)
 - [English README](../README.en.md)

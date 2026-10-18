@@ -153,7 +153,7 @@ class ResolutionTests(unittest.TestCase):
             with self.assertRaises(WasdifyError):
                 service.apply(plan)
             target.write_bytes(executable())
-            plan = service.plan({"main": target}, (PATCH, "wasd"))
+            plan = service.plan({"main": target}, (PATCH, "render-optimization"))
             self.assertFalse(plan.ready)
             with self.assertRaises(WasdifyError):
                 service.apply(plan)

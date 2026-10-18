@@ -18,19 +18,25 @@ checks, safe file replacement and optional backups are implemented. Both
 interfaces support Russian and English.
 
 The first game is **Dungeons of Kremlin / Подземелья Кремля**. The catalog includes
-Russian `PKR.EXE` and English `PKE.EXE`. The first real patch is implemented:
+Russian `PKR.EXE` and English `PKE.EXE`. Two patches are implemented:
 
 | Patch | ID | Status |
 |---|---|---|
-| WASD controls | `wasd` | Placeholder |
+| WASD controls and direct mouse turning | `wasd` | Implemented for RUS/ENG |
 | `-r1`: 640×400 instead of 640×480 | `resolution-640x400` | Implemented for RUS/ENG |
 | Render optimization | `render-optimization` | Placeholder |
 
 Selecting a placeholder returns `not_implemented` and exit code `5`, blocking
 the entire selected set. The resolution patch changes one byte after validating
 a unique NE code signature; repeat application is a no-op. Both versions were
-analyzed and emulated; visual DOSBox testing is pending.
+analyzed and emulated for the resolution patch; its separate visual DOSBox check is pending.
 See the [analysis and limits](docs/games/dungeons-of-kremlin/analysis.md).
+
+The WASD patch preserves arrow keys and adds independent direct horizontal
+mouse turning, enabled automatically. The user confirmed it works in-game.
+Default sensitivity is 0.2 degrees per mouse counter unit; tuning across
+computers and DOSBox configurations remains follow-up playtesting.
+See [controls and verification](docs/games/dungeons-of-kremlin/wasd.md).
 
 ## Install
 
@@ -90,6 +96,7 @@ After activating the venv, or using the full command path:
 wasdify --lang en games
 wasdify detect "C:\Games\Kremlin\PKE.EXE"
 wasdify patches --game dungeons-of-kremlin
+wasdify apply "C:\Games\Kremlin\PKE.EXE" --patch wasd
 wasdify plan "C:\Games\Kremlin\PKE.EXE" --patch resolution-640x400
 wasdify apply "C:\Games\Kremlin\PKE.EXE" --patch resolution-640x400
 wasdify gui
@@ -138,7 +145,7 @@ concurrent edits to the target file while patching.
 ```
 
 Tests use synthetic binaries only. CI covers Windows on Python 3.11 and the current
-stable Python release. NASM is a development tool for future ASM payloads;
+stable Python release. NASM is a development tool for reproducible WASD payloads;
 it is not needed to run WASDify.
 
 - [Architecture and extension guide](docs/architecture.md) (Russian)

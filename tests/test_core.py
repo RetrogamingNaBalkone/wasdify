@@ -129,11 +129,11 @@ class EditTests(unittest.TestCase):
 
 
 class CatalogTests(unittest.TestCase):
-    def test_packaged_catalog_has_one_real_patch_and_two_placeholders(self):
+    def test_packaged_catalog_has_two_real_patches_and_one_placeholder(self):
         value = load_catalog().game("dungeons-of-kremlin")
         self.assertEqual(len(value.versions), 2)
         self.assertEqual({p.id for p in value.patches}, {"wasd", "resolution-640x400", "render-optimization"})
-        self.assertEqual({p.id for p in value.patches if p.implemented}, {"resolution-640x400"})
+        self.assertEqual({p.id for p in value.patches if p.implemented}, {"wasd", "resolution-640x400"})
         self.assertTrue(all(not p.dependencies and not p.conflicts for p in value.patches))
 
     def test_invalid_metadata(self):
@@ -150,7 +150,7 @@ class CatalogTests(unittest.TestCase):
         for key in messages("en"):
             fields = lambda lang: {name for _, name, _, _ in formatter.parse(messages(lang)[key]) if name}
             self.assertEqual(fields("en"), fields("ru"), key)
-        self.assertIn("заглушка", Translator("ru").issue(Issue("not_implemented", {"patch": "wasd"})))
+        self.assertIn("заглушка", Translator("ru").issue(Issue("not_implemented", {"patch": "render-optimization"})))
 
 
 class ServiceTests(unittest.TestCase):

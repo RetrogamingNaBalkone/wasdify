@@ -55,7 +55,7 @@ class CLITests(unittest.TestCase):
             target = Path(folder) / "unknown.exe"
             target.write_bytes(b"unknown")
             self.assertEqual(self.invoke(["detect", str(target), "--json"])[0], 3)
-            code, out, err = self.invoke(["apply", str(target), "--game", "dungeons-of-kremlin", "--patch", "wasd", "--json"])
+            code, out, err = self.invoke(["apply", str(target), "--game", "dungeons-of-kremlin", "--patch", "render-optimization", "--json"])
             self.assertEqual(code, 5)
             self.assertEqual(json.loads(out)["plan"]["issues"][0]["code"], "not_implemented")
             self.assertEqual(target.read_bytes(), b"unknown")

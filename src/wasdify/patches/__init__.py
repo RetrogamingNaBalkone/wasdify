@@ -3,8 +3,10 @@ from typing import Callable, Mapping
 
 from ..models import Patch
 from .kremlin_resolution import Resolution640x400, probe as kremlin_probe
+from .kremlin_wasd import WasdControls
 
 IMPLEMENTATIONS: dict[tuple[str, str], Patch] = {
+    ("dungeons-of-kremlin", "wasd"): WasdControls(),
     ("dungeons-of-kremlin", "resolution-640x400"): Resolution640x400(),
 }
 GAME_PROBES: dict[str, Callable[[Mapping[str, bytes]], bool]] = {
