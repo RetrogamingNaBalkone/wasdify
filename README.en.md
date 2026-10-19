@@ -18,16 +18,20 @@ checks, safe file replacement and optional backups are implemented. Both
 interfaces support Russian and English.
 
 The first game is **Dungeons of Kremlin / Подземелья Кремля**. The catalog includes
-Russian `PKR.EXE` and English `PKE.EXE`. Two patches are implemented:
+Russian `PKR.EXE` and English `PKE.EXE`. Four patches are implemented:
 
 | Patch | ID | Status |
 |---|---|---|
 | WASD controls and direct mouse turning | `wasd` | Implemented for RUS/ENG |
 | `-r1`: 640×400 instead of 640×480 | `resolution-640x400` | Implemented for RUS/ENG |
-| Render optimization | `render-optimization` | Placeholder |
+| Render optimization | `render-optimization` | RUS/ENG; [RUS profiling-copy measurements](docs/games/dungeons-of-kremlin/benchmark.md), ENG measurements pending |
+| Numeric life and charge | `numeric-hud` | RUS/ENG; [two fields with native icons](docs/games/dungeons-of-kremlin/numeric-hud.md) |
 
-Selecting a placeholder returns `not_implemented` and exit code `5`, blocking
-the entire selected set. The resolution patch changes one byte after validating
+The render patch saves two instructions per horizontal textured pixel and remains
+an optional improvement. RUS profiling copies gained 6.8–10.5% in median FPS
+with `normal/60000`. Further renderer optimization has been removed from the active plan.
+[Analysis, checks and limitations](docs/games/dungeons-of-kremlin/render.md).
+An incompatible patch blocks the entire selected set. The resolution patch changes one byte after validating
 a unique NE code signature; repeat application is a no-op. Both versions were
 analyzed and emulated for the resolution patch; its separate visual DOSBox check is pending.
 See the [analysis and limits](docs/games/dungeons-of-kremlin/analysis.md).
@@ -37,6 +41,20 @@ mouse turning, enabled automatically. The user confirmed it works in-game.
 Default sensitivity is 0.2 degrees per mouse counter unit; tuning across
 computers and DOSBox configurations remains follow-up playtesting.
 See [controls and verification](docs/games/dungeons-of-kremlin/wasd.md).
+
+For game performance in **DOSBox Staging 0.83**, first add or update this
+section in the configuration file you use, then restart DOSBox:
+
+```ini
+[cpu]
+core = dynamic
+cpu_cycles_protected = max
+```
+
+This configuration resolved the user's performance issue. In our profiling
+setup, the original PKR.EXE reached about 275 FPS at 640×480, compared with 14
+using `normal/60000`. See the [method and limitations](docs/games/dungeons-of-kremlin/benchmark.md).
+The WASD and resolution fixes remain independent of renderer optimization.
 
 ## Install
 

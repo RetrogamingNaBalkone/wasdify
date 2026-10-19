@@ -4,8 +4,12 @@ from typing import Callable, Mapping
 from ..models import Patch
 from .kremlin_resolution import Resolution640x400, probe as kremlin_probe
 from .kremlin_wasd import WasdControls
+from .kremlin_render import RenderOptimization
+from .kremlin_numeric_hud import NumericHud
 
 IMPLEMENTATIONS: dict[tuple[str, str], Patch] = {
+    ("dungeons-of-kremlin", "numeric-hud"): NumericHud(),
+    ("dungeons-of-kremlin", "render-optimization"): RenderOptimization(),
     ("dungeons-of-kremlin", "wasd"): WasdControls(),
     ("dungeons-of-kremlin", "resolution-640x400"): Resolution640x400(),
 }

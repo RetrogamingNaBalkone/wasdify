@@ -143,7 +143,7 @@ class ResolutionTests(unittest.TestCase):
             self.assertEqual(service.apply(again).status, "no_changes")
             self.assertEqual(len(list(Path(folder).glob("*.bak"))), 1)
 
-    def test_manual_game_does_not_bypass_context_and_stub_blocks_set(self):
+    def test_manual_game_does_not_bypass_context_and_incompatible_render_blocks_set(self):
         with tempfile.TemporaryDirectory() as folder:
             target = Path(folder) / "PKR.EXE"
             target.write_bytes(executable(2))

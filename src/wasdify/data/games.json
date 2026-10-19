@@ -68,15 +68,32 @@
             "en": "Render optimization"
           },
           "description": {
-            "ru": "Оптимизация отрисовки с сохранением исходного вида игры. Реализация ещё не добавлена.",
-            "en": "Optimize rendering while preserving the original appearance. Implementation is pending."
+            "ru": "Необязательное сокращение горизонтального текстурного цикла. На диагностических копиях RUS при normal/60000: +6,8–10,5% к медиане FPS; ENG не измерен. В DOSBox Staging 0.83 сначала настройте core=dynamic и cpu_cycles_protected=max в секции [cpu] и перезапустите эмулятор.",
+            "en": "Optional horizontal texture-loop optimization. RUS profiling copies with normal/60000: +6.8–10.5% median FPS; ENG not measured. In DOSBox Staging 0.83, first set core=dynamic and cpu_cycles_protected=max in [cpu], then restart the emulator."
           },
           "roles": [
             "main"
           ],
           "dependencies": [],
           "conflicts": [],
-          "implemented": false
+          "implemented": true
+        },
+        {
+          "id": "numeric-hud",
+          "title": {
+            "ru": "Жизнь и заряд числами",
+            "en": "Numeric life and charge"
+          },
+          "description": {
+            "ru": "Два отдельных оконца с родными рамками вместо полосок. Значки сохраняют исходные пропорции, числа показывают текущие значения жизни и заряда игровым шрифтом. RUS/ENG.",
+            "en": "Replace the bars with two separate windows using native frames. Icons retain their original proportions; the game font displays current life and magic charge values. RUS/ENG."
+          },
+          "roles": [
+            "main"
+          ],
+          "dependencies": [],
+          "conflicts": [],
+          "implemented": true
         }
       ]
     }

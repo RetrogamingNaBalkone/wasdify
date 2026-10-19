@@ -1,0 +1,673 @@
+[
+  {
+    "core": "normal",
+    "cycles": "60000",
+    "width": 640,
+    "height": 480,
+    "variant": "before",
+    "n": 5,
+    "fps_median": 13.806403253470105,
+    "fps_min": 13.787433817205153,
+    "fps_max": 13.963236891747743,
+    "guest_time_percent": {
+      "horizontal": 51.20062490309697,
+      "vertical": 30.66561961264752,
+      "present_region": 3.1124271311858225,
+      "present_full": 0.0,
+      "copy_full": 0.0,
+      "copy_region": 3.0880690299454323,
+      "bank": 0.18350547147163976
+    },
+    "start_hashes": [
+      "cf8e629c201dd1873fed5aa509c0b17c4d4f8d8c107c794aeaceb9b147a88965"
+    ],
+    "corrected_auxiliary_reads": [],
+    "trials": [
+      {
+        "fps": 13.963236891747743,
+        "frames": 84,
+        "wall_seconds": 6.015797100000782,
+        "guest_seconds": 6.051957378333333,
+        "horizontal_calls": 6434,
+        "vertical_calls": 1529,
+        "bank_calls": 408
+      },
+      {
+        "fps": 13.938730220488985,
+        "frames": 84,
+        "wall_seconds": 6.0263739000074565,
+        "guest_seconds": 6.050982120833334,
+        "horizontal_calls": 6460,
+        "vertical_calls": 1517,
+        "bank_calls": 407
+      },
+      {
+        "fps": 13.806403253470105,
+        "frames": 83,
+        "wall_seconds": 6.011703299998771,
+        "guest_seconds": 5.972707370833334,
+        "horizontal_calls": 6430,
+        "vertical_calls": 1555,
+        "bank_calls": 403
+      },
+      {
+        "fps": 13.787433817205153,
+        "frames": 83,
+        "wall_seconds": 6.01997449999908,
+        "guest_seconds": 5.973565299583334,
+        "horizontal_calls": 6450,
+        "vertical_calls": 1516,
+        "bank_calls": 403
+      },
+      {
+        "fps": 13.79855591296541,
+        "frames": 83,
+        "wall_seconds": 6.015122199998586,
+        "guest_seconds": 5.972129869583334,
+        "horizontal_calls": 6426,
+        "vertical_calls": 1542,
+        "bank_calls": 403
+      }
+    ]
+  },
+  {
+    "core": "normal",
+    "cycles": "60000",
+    "width": 640,
+    "height": 480,
+    "variant": "after",
+    "n": 5,
+    "fps_median": 14.941311276367319,
+    "fps_min": 14.800261655340185,
+    "fps_max": 14.963490081752896,
+    "guest_time_percent": {
+      "horizontal": 47.45154576545836,
+      "vertical": 31.949789474418193,
+      "present_region": 3.307909812080546,
+      "present_full": 0.0,
+      "copy_full": 0.0,
+      "copy_region": 3.2820684329445395,
+      "bank": 0.19490019556504265
+    },
+    "start_hashes": [
+      "cf8e629c201dd1873fed5aa509c0b17c4d4f8d8c107c794aeaceb9b147a88965"
+    ],
+    "corrected_auxiliary_reads": [],
+    "trials": [
+      {
+        "fps": 14.963490081752896,
+        "frames": 90,
+        "wall_seconds": 6.0146396000054665,
+        "guest_seconds": 6.056906441666667,
+        "horizontal_calls": 6904,
+        "vertical_calls": 1622,
+        "bank_calls": 434
+      },
+      {
+        "fps": 14.941311276367319,
+        "frames": 90,
+        "wall_seconds": 6.023567700001877,
+        "guest_seconds": 6.056081268750001,
+        "horizontal_calls": 6950,
+        "vertical_calls": 1625,
+        "bank_calls": 429
+      },
+      {
+        "fps": 14.950688642001657,
+        "frames": 90,
+        "wall_seconds": 6.019789600002696,
+        "guest_seconds": 6.0569071220833335,
+        "horizontal_calls": 6904,
+        "vertical_calls": 1622,
+        "bank_calls": 434
+      },
+      {
+        "fps": 14.933305121556057,
+        "frames": 90,
+        "wall_seconds": 6.026797099999385,
+        "guest_seconds": 6.0569284833333334,
+        "horizontal_calls": 6928,
+        "vertical_calls": 1635,
+        "bank_calls": 435
+      },
+      {
+        "fps": 14.800261655340185,
+        "frames": 89,
+        "wall_seconds": 6.013407199992798,
+        "guest_seconds": 5.982216126666667,
+        "horizontal_calls": 6900,
+        "vertical_calls": 1625,
+        "bank_calls": 430
+      }
+    ]
+  },
+  {
+    "core": "normal",
+    "cycles": "60000",
+    "width": 800,
+    "height": 600,
+    "variant": "before",
+    "n": 5,
+    "fps_median": 9.79954173688357,
+    "fps_min": 9.623960662032271,
+    "fps_max": 9.806523279356343,
+    "guest_time_percent": {
+      "horizontal": 52.670632705954404,
+      "vertical": 31.513854047445815,
+      "present_region": 2.886251641435915,
+      "present_full": 0.0,
+      "copy_full": 0.0,
+      "copy_region": 2.869493623058863,
+      "bank": 0.1746413395492133
+    },
+    "start_hashes": [
+      "52ff49047708326340b6158482e94af5013ae8c8475342eea9c81c453ba30ab3"
+    ],
+    "corrected_auxiliary_reads": [],
+    "trials": [
+      {
+        "fps": 9.806523279356343,
+        "frames": 59,
+        "wall_seconds": 6.01640339998994,
+        "guest_seconds": 6.085087364166667,
+        "horizontal_calls": 4502,
+        "vertical_calls": 1065,
+        "bank_calls": 390
+      },
+      {
+        "fps": 9.623960662032271,
+        "frames": 58,
+        "wall_seconds": 6.02662479999708,
+        "guest_seconds": 5.9794844070833335,
+        "horizontal_calls": 4496,
+        "vertical_calls": 1070,
+        "bank_calls": 384
+      },
+      {
+        "fps": 9.79954173688357,
+        "frames": 59,
+        "wall_seconds": 6.020689700002549,
+        "guest_seconds": 6.0851035695833335,
+        "horizontal_calls": 4497,
+        "vertical_calls": 1051,
+        "bank_calls": 390
+      },
+      {
+        "fps": 9.806195341458185,
+        "frames": 59,
+        "wall_seconds": 6.016604600008577,
+        "guest_seconds": 6.085104259583334,
+        "horizontal_calls": 4502,
+        "vertical_calls": 1066,
+        "bank_calls": 391
+      },
+      {
+        "fps": 9.796381220108442,
+        "frames": 59,
+        "wall_seconds": 6.022632099993643,
+        "guest_seconds": 6.085106904583333,
+        "horizontal_calls": 4502,
+        "vertical_calls": 1068,
+        "bank_calls": 391
+      }
+    ]
+  },
+  {
+    "core": "normal",
+    "cycles": "60000",
+    "width": 800,
+    "height": 600,
+    "variant": "after",
+    "n": 5,
+    "fps_median": 10.462608207646893,
+    "fps_min": 10.310258459374678,
+    "fps_max": 10.495336921807748,
+    "guest_time_percent": {
+      "horizontal": 49.22554273491541,
+      "vertical": 34.30217214082607,
+      "present_region": 3.08681068731733,
+      "present_full": 0.0,
+      "copy_full": 0.0,
+      "copy_region": 3.068845119376459,
+      "bank": 0.18672191305729482
+    },
+    "start_hashes": [
+      "52ff49047708326340b6158482e94af5013ae8c8475342eea9c81c453ba30ab3",
+      "d6ee72cae6b0c60891e63d10563f4e4416f20c770452da693ff9ee4da42fe30e"
+    ],
+    "corrected_auxiliary_reads": [],
+    "trials": [
+      {
+        "fps": 10.462608207646893,
+        "frames": 63,
+        "wall_seconds": 6.021443100005854,
+        "guest_seconds": 6.059995082916667,
+        "horizontal_calls": 4885,
+        "vertical_calls": 1170,
+        "bank_calls": 416
+      },
+      {
+        "fps": 10.495336921807748,
+        "frames": 63,
+        "wall_seconds": 6.002665799998795,
+        "guest_seconds": 6.063580457083334,
+        "horizontal_calls": 4884,
+        "vertical_calls": 1185,
+        "bank_calls": 417
+      },
+      {
+        "fps": 10.310258459374678,
+        "frames": 62,
+        "wall_seconds": 6.013428300007945,
+        "guest_seconds": 5.955409099583334,
+        "horizontal_calls": 4875,
+        "vertical_calls": 1193,
+        "bank_calls": 403
+      },
+      {
+        "fps": 10.450675598024171,
+        "frames": 63,
+        "wall_seconds": 6.028318399999989,
+        "guest_seconds": 6.060369149166667,
+        "horizontal_calls": 4880,
+        "vertical_calls": 1191,
+        "bank_calls": 417
+      },
+      {
+        "fps": 10.473537211748218,
+        "frames": 63,
+        "wall_seconds": 6.015159800008405,
+        "guest_seconds": 6.036125481666667,
+        "horizontal_calls": 4786,
+        "vertical_calls": 1171,
+        "bank_calls": 410
+      }
+    ]
+  },
+  {
+    "core": "normal",
+    "cycles": "60000",
+    "width": 1024,
+    "height": 768,
+    "variant": "before",
+    "n": 5,
+    "fps_median": 6.318472076402997,
+    "fps_min": 6.308113076707713,
+    "fps_max": 6.330736359767671,
+    "guest_time_percent": {
+      "horizontal": 53.131768082465115,
+      "vertical": 35.42398088504348,
+      "present_region": 2.780064675056636,
+      "present_full": 0.0,
+      "copy_full": 0.0,
+      "copy_region": 2.7690713206230866,
+      "bank": 0.17293064092202334
+    },
+    "start_hashes": [
+      "bc4bf35feaee657b9c11f8e1c835dd7138b437ba72b448b2cb1b65559d6fd3ef"
+    ],
+    "corrected_auxiliary_reads": [],
+    "trials": [
+      {
+        "fps": 6.330736359767671,
+        "frames": 38,
+        "wall_seconds": 6.002461299998686,
+        "guest_seconds": 5.984289001666667,
+        "horizontal_calls": 2724,
+        "vertical_calls": 697,
+        "bank_calls": 380
+      },
+      {
+        "fps": 6.308113076707713,
+        "frames": 38,
+        "wall_seconds": 6.023988400003873,
+        "guest_seconds": 5.976992357083334,
+        "horizontal_calls": 2739,
+        "vertical_calls": 689,
+        "bank_calls": 380
+      },
+      {
+        "fps": 6.330059848390129,
+        "frames": 38,
+        "wall_seconds": 6.00310279999394,
+        "guest_seconds": 5.984289135833333,
+        "horizontal_calls": 2720,
+        "vertical_calls": 697,
+        "bank_calls": 380
+      },
+      {
+        "fps": 6.310190289756601,
+        "frames": 38,
+        "wall_seconds": 6.0220054000092205,
+        "guest_seconds": 5.976989740833334,
+        "horizontal_calls": 2728,
+        "vertical_calls": 693,
+        "bank_calls": 380
+      },
+      {
+        "fps": 6.318472076402997,
+        "frames": 38,
+        "wall_seconds": 6.014112199991359,
+        "guest_seconds": 5.975873004583334,
+        "horizontal_calls": 2738,
+        "vertical_calls": 673,
+        "bank_calls": 380
+      }
+    ]
+  },
+  {
+    "core": "normal",
+    "cycles": "60000",
+    "width": 1024,
+    "height": 768,
+    "variant": "after",
+    "n": 5,
+    "fps_median": 6.981270763154109,
+    "fps_min": 6.810982187155826,
+    "fps_max": 6.997214991802716,
+    "guest_time_percent": {
+      "horizontal": 50.56879937046953,
+      "vertical": 35.90688754525674,
+      "present_region": 3.0245382732834,
+      "present_full": 0.0,
+      "copy_full": 0.0,
+      "copy_region": 3.012582339387472,
+      "bank": 0.18804834269955442
+    },
+    "start_hashes": [
+      "bc4bf35feaee657b9c11f8e1c835dd7138b437ba72b448b2cb1b65559d6fd3ef"
+    ],
+    "corrected_auxiliary_reads": [
+      [
+        61423,
+        61423
+      ]
+    ],
+    "trials": [
+      {
+        "fps": 6.981270763154109,
+        "frames": 42,
+        "wall_seconds": 6.0160966999974335,
+        "guest_seconds": 6.074726381666667,
+        "horizontal_calls": 3196,
+        "vertical_calls": 746,
+        "bank_calls": 420
+      },
+      {
+        "fps": 6.981375551718462,
+        "frames": 42,
+        "wall_seconds": 6.016006400008337,
+        "guest_seconds": 6.074500770833334,
+        "horizontal_calls": 3201,
+        "vertical_calls": 741,
+        "bank_calls": 420
+      },
+      {
+        "fps": 6.970076994798937,
+        "frames": 42,
+        "wall_seconds": 6.025758399991901,
+        "guest_seconds": 6.0745010775,
+        "horizontal_calls": 3209,
+        "vertical_calls": 741,
+        "bank_calls": 420
+      },
+      {
+        "fps": 6.997214991802716,
+        "frames": 42,
+        "wall_seconds": 6.0023881000088295,
+        "guest_seconds": 6.074521097083334,
+        "horizontal_calls": 3168,
+        "vertical_calls": 732,
+        "bank_calls": 420
+      },
+      {
+        "fps": 6.810982187155826,
+        "frames": 41,
+        "wall_seconds": 6.019689799999469,
+        "guest_seconds": 5.944747411250001,
+        "horizontal_calls": 3138,
+        "vertical_calls": 736,
+        "bank_calls": 410
+      }
+    ]
+  },
+  {
+    "core": "dynamic",
+    "cycles": "max",
+    "width": 640,
+    "height": 480,
+    "variant": "before",
+    "n": 5,
+    "fps_median": 275.44304296995654,
+    "fps_min": 265.0075575363702,
+    "fps_max": 280.8334931905791,
+    "guest_time_percent": {
+      "horizontal": 50.11810571882987,
+      "vertical": 30.019355158102222,
+      "present_region": 3.084819204306578,
+      "present_full": 0.0,
+      "copy_full": 0.0,
+      "copy_region": 2.9967967845058374,
+      "bank": 0.3465089047014075
+    },
+    "start_hashes": [
+      "cf8e629c201dd1873fed5aa509c0b17c4d4f8d8c107c794aeaceb9b147a88965"
+    ],
+    "corrected_auxiliary_reads": [],
+    "trials": [
+      {
+        "fps": 275.44304296995654,
+        "frames": 1653,
+        "wall_seconds": 6.001240699988557,
+        "guest_seconds": 5.995372620481928,
+        "horizontal_calls": 126485,
+        "vertical_calls": 30367,
+        "bank_calls": 7448
+      },
+      {
+        "fps": 265.0075575363702,
+        "frames": 1594,
+        "wall_seconds": 6.014922800008208,
+        "guest_seconds": 6.010971391566265,
+        "horizontal_calls": 123304,
+        "vertical_calls": 29529,
+        "bank_calls": 7182
+      },
+      {
+        "fps": 280.8334931905791,
+        "frames": 1689,
+        "wall_seconds": 6.014239899988752,
+        "guest_seconds": 6.00672284939759,
+        "horizontal_calls": 129408,
+        "vertical_calls": 31046,
+        "bank_calls": 7614
+      },
+      {
+        "fps": 276.6743418612541,
+        "frames": 1666,
+        "wall_seconds": 6.021519699992496,
+        "guest_seconds": 6.0191882168674695,
+        "horizontal_calls": 128421,
+        "vertical_calls": 30498,
+        "bank_calls": 7502
+      },
+      {
+        "fps": 274.4561468484127,
+        "frames": 1650,
+        "wall_seconds": 6.011889399989741,
+        "guest_seconds": 6.009148126506024,
+        "horizontal_calls": 126640,
+        "vertical_calls": 30284,
+        "bank_calls": 7434
+      }
+    ]
+  },
+  {
+    "core": "dynamic",
+    "cycles": "max",
+    "width": 640,
+    "height": 480,
+    "variant": "after",
+    "n": 5,
+    "fps_median": 289.3627927149203,
+    "fps_min": 270.6783908763907,
+    "fps_max": 297.40109490427847,
+    "guest_time_percent": {
+      "horizontal": 46.95697518528816,
+      "vertical": 31.840371277268005,
+      "present_region": 3.287864631604634,
+      "present_full": 0.0,
+      "copy_full": 0.0,
+      "copy_region": 3.192893950485396,
+      "bank": 0.3675247147845734
+    },
+    "start_hashes": [
+      "cf8e629c201dd1873fed5aa509c0b17c4d4f8d8c107c794aeaceb9b147a88965"
+    ],
+    "corrected_auxiliary_reads": [],
+    "trials": [
+      {
+        "fps": 297.40109490427847,
+        "frames": 1790,
+        "wall_seconds": 6.018807700005709,
+        "guest_seconds": 6.016771289156626,
+        "horizontal_calls": 138396,
+        "vertical_calls": 33198,
+        "bank_calls": 8055
+      },
+      {
+        "fps": 295.7385422595594,
+        "frames": 1779,
+        "wall_seconds": 6.01544859999558,
+        "guest_seconds": 6.007375403614458,
+        "horizontal_calls": 138178,
+        "vertical_calls": 32794,
+        "bank_calls": 8006
+      },
+      {
+        "fps": 270.6783908763907,
+        "frames": 1628,
+        "wall_seconds": 6.014517799994792,
+        "guest_seconds": 6.003156987951807,
+        "horizontal_calls": 125898,
+        "vertical_calls": 30031,
+        "bank_calls": 7355
+      },
+      {
+        "fps": 289.3627927149203,
+        "frames": 1741,
+        "wall_seconds": 6.016668500000378,
+        "guest_seconds": 6.014505891566265,
+        "horizontal_calls": 133926,
+        "vertical_calls": 32079,
+        "bank_calls": 7834
+      },
+      {
+        "fps": 289.2200830774534,
+        "frames": 1741,
+        "wall_seconds": 6.01963729999261,
+        "guest_seconds": 6.013655078313253,
+        "horizontal_calls": 133622,
+        "vertical_calls": 32055,
+        "bank_calls": 7854
+      }
+    ]
+  },
+  {
+    "core": "dynamic",
+    "cycles": "max",
+    "width": 800,
+    "height": 600,
+    "variant": "before",
+    "n": 3,
+    "fps_median": 205.41267214534145,
+    "fps_min": 202.66245013687316,
+    "fps_max": 205.58487077348877,
+    "guest_time_percent": {
+      "horizontal": 52.40464176685303,
+      "vertical": 31.764362237492428,
+      "present_region": 3.043881745797981,
+      "present_full": 0.0,
+      "copy_full": 0.0,
+      "copy_region": 2.9795218172997777,
+      "bank": 0.3613371853999386
+    },
+    "start_hashes": [
+      "52ff49047708326340b6158482e94af5013ae8c8475342eea9c81c453ba30ab3"
+    ],
+    "corrected_auxiliary_reads": [],
+    "trials": [
+      {
+        "fps": 205.58487077348877,
+        "frames": 1238,
+        "wall_seconds": 6.021843900001841,
+        "guest_seconds": 6.00635743373494,
+        "horizontal_calls": 95780,
+        "vertical_calls": 22622,
+        "bank_calls": 8043
+      },
+      {
+        "fps": 202.66245013687316,
+        "frames": 1221,
+        "wall_seconds": 6.024796400000923,
+        "guest_seconds": 6.0271123192771086,
+        "horizontal_calls": 93756,
+        "vertical_calls": 22017,
+        "bank_calls": 7936
+      },
+      {
+        "fps": 205.41267214534145,
+        "frames": 1235,
+        "wall_seconds": 6.012287300007301,
+        "guest_seconds": 6.014116963855422,
+        "horizontal_calls": 95810,
+        "vertical_calls": 22490,
+        "bank_calls": 8028
+      }
+    ]
+  },
+  {
+    "core": "dynamic",
+    "cycles": "max",
+    "width": 800,
+    "height": 600,
+    "variant": "after",
+    "n": 2,
+    "fps_median": 217.25886709079316,
+    "fps_min": 216.98664781673514,
+    "fps_max": 217.5310863648512,
+    "guest_time_percent": {
+      "horizontal": 49.002284949388795,
+      "vertical": 33.94326375855229,
+      "present_region": 3.2716982545265525,
+      "present_full": 0.0,
+      "copy_full": 0.0,
+      "copy_region": 3.202872307750553,
+      "bank": 0.3854188007921833
+    },
+    "start_hashes": [
+      "52ff49047708326340b6158482e94af5013ae8c8475342eea9c81c453ba30ab3"
+    ],
+    "corrected_auxiliary_reads": [],
+    "trials": [
+      {
+        "fps": 216.98664781673514,
+        "frames": 1307,
+        "wall_seconds": 6.023412100010319,
+        "guest_seconds": 6.014215301204819,
+        "horizontal_calls": 101774,
+        "vertical_calls": 24247,
+        "bank_calls": 8496
+      },
+      {
+        "fps": 217.5310863648512,
+        "frames": 1308,
+        "wall_seconds": 6.012933699996211,
+        "guest_seconds": 6.006678668674699,
+        "horizontal_calls": 101014,
+        "vertical_calls": 23823,
+        "bank_calls": 8502
+      }
+    ]
+  }
+]

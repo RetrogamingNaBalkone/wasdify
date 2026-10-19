@@ -50,14 +50,14 @@ class CLITests(unittest.TestCase):
         self.assertEqual(code, 4)
         self.assertEqual(json.loads(out)["issues"][0]["code"], "io_error")
 
-    def test_unknown_file_and_stub_exit_codes(self):
+    def test_unknown_file_and_unsupported_render_exit_codes(self):
         with tempfile.TemporaryDirectory() as folder:
             target = Path(folder) / "unknown.exe"
             target.write_bytes(b"unknown")
             self.assertEqual(self.invoke(["detect", str(target), "--json"])[0], 3)
             code, out, err = self.invoke(["apply", str(target), "--game", "dungeons-of-kremlin", "--patch", "render-optimization", "--json"])
-            self.assertEqual(code, 5)
-            self.assertEqual(json.loads(out)["plan"]["issues"][0]["code"], "not_implemented")
+            self.assertEqual(code, 3)
+            self.assertEqual(json.loads(out)["plan"]["issues"][0]["code"], "unsupported_executable")
             self.assertEqual(target.read_bytes(), b"unknown")
             self.assertEqual(len(list(Path(folder).iterdir())), 1)
 

@@ -1,0 +1,46 @@
+{
+  "profiles": [
+    {
+      "language": "ru",
+      "signature": "8c d0 90 45 55 8b ec 1e 8e d8 83 ec 04 56 57 a1 da c1 99 8b 1e d8 c1 c1 e3 02 03 87 42 b5 83 d2 00 b9 ff ff d3 e2 03 97 44 b5 89 56 fc 89 46 fa 8b 0e 4a c1 a1 e6 c1 f7 e9 8b 16 e2 c1 03 c2 66 8b 36 e4 c1 66 c1 e6 10 8b 36 4c c1 03 f0 a1 ee c1 f7 e9 8b 16 ea c1 03 c2 66 8b 16 ec c1 66 c1 e2 10 8b d0 66 8b 0e e8 c1 66 c1 e1 10 8b 0e dc c1 2b 0e da c1 83 c1 02 8e 2e 4e c1 66 a1 e0 c1 66 c1 e0 10 8b 7e fa 8e 46 fc 8e 26 26 b5 eb 1e ?? ?? ?? ?? ?? ?? ?? 64 8a 1f 26 88 1d 83 c7 01 72 18 66 03 c1 66 13 f2 73 04 03 36 4a c1 49 75 ?? 5f 5e 8d 66 fe 1f 5d 4d cb 66 50 8c c0 03 06 44 c1 8e c0 66 58 49 75 ?? 5f 5e 8d 66 fe 1f 5d 4d cb",
+      "regions": [
+        {
+          "relative": 144,
+          "expected": "8bde658a1f32ff",
+          "replacement": "909090650fb61c"
+        },
+        {
+          "relative": 176,
+          "expected": "df",
+          "replacement": "e2"
+        },
+        {
+          "relative": 200,
+          "expected": "c7",
+          "replacement": "ca"
+        }
+      ]
+    },
+    {
+      "language": "en",
+      "signature": "8c d0 90 45 55 8b ec 1e 8e d8 83 ec 04 56 57 a1 8a c2 99 8b 1e 88 c2 c1 e3 02 03 87 f2 b5 83 d2 00 b9 ff ff d3 e2 03 97 f4 b5 89 56 fc 89 46 fa 8b 0e fa c1 a1 96 c2 f7 e9 8b 16 92 c2 03 c2 66 8b 36 94 c2 66 c1 e6 10 8b 36 fc c1 03 f0 a1 9e c2 f7 e9 8b 16 9a c2 03 c2 66 8b 16 9c c2 66 c1 e2 10 8b d0 66 8b 0e 98 c2 66 c1 e1 10 8b 0e 8c c2 2b 0e 8a c2 83 c1 02 8e 2e fe c1 66 a1 90 c2 66 c1 e0 10 8b 7e fa 8e 46 fc 8e 26 d6 b5 eb 1e ?? ?? ?? ?? ?? ?? ?? 64 8a 1f 26 88 1d 83 c7 01 72 18 66 03 c1 66 13 f2 73 04 03 36 fa c1 49 75 ?? 5f 5e 8d 66 fe 1f 5d 4d cb 66 50 8c c0 03 06 f4 c1 8e c0 66 58 49 75 ?? 5f 5e 8d 66 fe 1f 5d 4d cb",
+      "regions": [
+        {
+          "relative": 144,
+          "expected": "8bde658a1f32ff",
+          "replacement": "909090650fb61c"
+        },
+        {
+          "relative": 176,
+          "expected": "df",
+          "replacement": "e2"
+        },
+        {
+          "relative": 200,
+          "expected": "c7",
+          "replacement": "ca"
+        }
+      ]
+    }
+  ]
+}

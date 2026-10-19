@@ -129,11 +129,11 @@ class EditTests(unittest.TestCase):
 
 
 class CatalogTests(unittest.TestCase):
-    def test_packaged_catalog_has_two_real_patches_and_one_placeholder(self):
+    def test_packaged_catalog_has_four_real_patches(self):
         value = load_catalog().game("dungeons-of-kremlin")
         self.assertEqual(len(value.versions), 2)
-        self.assertEqual({p.id for p in value.patches}, {"wasd", "resolution-640x400", "render-optimization"})
-        self.assertEqual({p.id for p in value.patches if p.implemented}, {"wasd", "resolution-640x400"})
+        self.assertEqual({p.id for p in value.patches}, {"wasd", "resolution-640x400", "render-optimization", "numeric-hud"})
+        self.assertEqual({p.id for p in value.patches if p.implemented}, {"wasd", "resolution-640x400", "render-optimization", "numeric-hud"})
         self.assertTrue(all(not p.dependencies and not p.conflicts for p in value.patches))
 
     def test_invalid_metadata(self):
