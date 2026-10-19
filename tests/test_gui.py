@@ -1,5 +1,5 @@
 """Tk integration tests: real widgets, synthetic game bytes only."""
-import tempfile
+from tests.support import temporary_directory
 import time
 from pathlib import Path
 import unittest
@@ -25,9 +25,8 @@ class GUITests(unittest.TestCase):
             self.skipTest(str(error))
         self.root.withdraw()
         self.addCleanup(self.root.destroy)
-        self.directory = tempfile.TemporaryDirectory()
-        self.addCleanup(self.directory.cleanup)
-        self.path = Path(self.directory.name) / "renamed.exe"
+        self.directory = self.enterContext(temporary_directory())
+        self.path = Path(self.directory) / "renamed.exe"
         self.path.write_bytes(SOURCE)
         self.app = Application(self.root, service_for(), language="en")
         self.root.update()

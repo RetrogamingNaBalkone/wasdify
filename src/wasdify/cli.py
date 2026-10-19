@@ -101,7 +101,6 @@ def main(argv: list[str] | None = None) -> int:
             for patch in patches:
                 lines.extend([patch.id + " — " + patch.title[tr.language],
                               patch.description[tr.language],
-                              tr("implemented" if patch.implemented else "placeholder"),
                               tr("dependencies") + ": " + (", ".join(patch.dependencies) or tr("none")),
                               tr("conflicts") + ": " + (", ".join(patch.conflicts) or tr("none")), ""])
             emit({"patches": patches}, "\n".join(lines))

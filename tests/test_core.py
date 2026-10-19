@@ -1,7 +1,7 @@
 """Only synthetic bytes; no copyrighted game files are test fixtures."""
 from dataclasses import replace
 from pathlib import Path
-import tempfile
+from tests.support import temporary_directory
 import unittest
 from unittest.mock import patch
 
@@ -155,9 +155,8 @@ class CatalogTests(unittest.TestCase):
 
 class ServiceTests(unittest.TestCase):
     def setUp(self):
-        self.directory = tempfile.TemporaryDirectory()
-        self.addCleanup(self.directory.cleanup)
-        self.path = Path(self.directory.name) / "renamed.exe"
+        self.directory = self.enterContext(temporary_directory())
+        self.path = Path(self.directory) / "renamed.exe"
         self.path.write_bytes(SOURCE)
         self.service = service_for()
 

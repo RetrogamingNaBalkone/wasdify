@@ -3,7 +3,7 @@ from contextlib import redirect_stdout
 from io import StringIO
 from pathlib import Path
 import struct
-import tempfile
+from tests.support import temporary_directory
 import unittest
 
 from wasdify.cli import main
@@ -172,7 +172,7 @@ class WasdTests(unittest.TestCase):
             for sequence in ((("wasd", "resolution-640x400"),),
                              (("wasd",), ("resolution-640x400",)),
                              (("resolution-640x400",), ("wasd",))):
-                with tempfile.TemporaryDirectory() as folder:
+                with temporary_directory() as folder:
                     target = Path(folder) / "renamed.bin"
                     data = executable(lang)
                     target.write_bytes(data)

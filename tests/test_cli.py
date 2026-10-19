@@ -2,7 +2,7 @@ from contextlib import redirect_stdout, redirect_stderr
 from io import StringIO
 import json
 from pathlib import Path
-import tempfile
+from tests.support import temporary_directory
 import unittest
 from unittest.mock import patch
 
@@ -45,13 +45,13 @@ class CLITests(unittest.TestCase):
         self.assertIn("Некорректные аргументы", err)
 
     def test_io_error_json(self):
-        with tempfile.TemporaryDirectory() as folder:
+        with temporary_directory() as folder:
             code, out, err = self.invoke(["detect", str(Path(folder) / "missing"), "--json"])
         self.assertEqual(code, 4)
         self.assertEqual(json.loads(out)["issues"][0]["code"], "io_error")
 
     def test_unknown_file_and_unsupported_render_exit_codes(self):
-        with tempfile.TemporaryDirectory() as folder:
+        with temporary_directory() as folder:
             target = Path(folder) / "unknown.exe"
             target.write_bytes(b"unknown")
             self.assertEqual(self.invoke(["detect", str(target), "--json"])[0], 3)
@@ -62,7 +62,7 @@ class CLITests(unittest.TestCase):
             self.assertEqual(len(list(Path(folder).iterdir())), 1)
 
     def test_successful_synthetic_cli_apply_and_hex_serialization(self):
-        with tempfile.TemporaryDirectory() as folder, patch("wasdify.cli.Service", return_value=service_for()):
+        with temporary_directory() as folder, patch("wasdify.cli.Service", return_value=service_for()):
             target = Path(folder) / "test.exe"
             target.write_bytes(SOURCE)
             args = [str(target), "--patch", "first", "--json"]

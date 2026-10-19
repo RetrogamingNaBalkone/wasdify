@@ -1,7 +1,7 @@
 """Synthetic NE contexts only; no original executable or game assets."""
 from pathlib import Path
 import struct
-import tempfile
+from tests.support import temporary_directory
 import unittest
 
 from wasdify.engine import build_result
@@ -96,7 +96,7 @@ class RenderTests(unittest.TestCase):
 
     def test_service_all_patches_backup_and_independence(self):
         for language in ("ru", "en"):
-            with tempfile.TemporaryDirectory() as directory:
+            with temporary_directory() as directory:
                 path = Path(directory) / "renamed.bin"
                 source = executable(language)
                 path.write_bytes(source)

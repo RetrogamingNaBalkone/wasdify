@@ -4,7 +4,7 @@ from io import StringIO
 import json
 from pathlib import Path
 import struct
-import tempfile
+from tests.support import temporary_directory
 import unittest
 
 from wasdify.cli import main
@@ -127,7 +127,7 @@ class ResolutionTests(unittest.TestCase):
         self.assertEqual(error.exception.issue.params["actual"], 2)
 
     def test_service_detect_apply_backup_and_idempotence(self):
-        with tempfile.TemporaryDirectory() as folder:
+        with temporary_directory() as folder:
             target = Path(folder) / "renamed.bin"
             target.write_bytes(executable())
             service = Service()
@@ -144,7 +144,7 @@ class ResolutionTests(unittest.TestCase):
             self.assertEqual(len(list(Path(folder).glob("*.bak"))), 1)
 
     def test_manual_game_does_not_bypass_context_and_incompatible_render_blocks_set(self):
-        with tempfile.TemporaryDirectory() as folder:
+        with temporary_directory() as folder:
             target = Path(folder) / "PKR.EXE"
             target.write_bytes(executable(2))
             service = Service()
@@ -161,7 +161,7 @@ class ResolutionTests(unittest.TestCase):
             self.assertEqual(len(list(Path(folder).iterdir())), 1)
 
     def test_actual_cli_registration_and_json(self):
-        with tempfile.TemporaryDirectory() as folder:
+        with temporary_directory() as folder:
             target = Path(folder) / "renamed.bin"
             target.write_bytes(executable())
             for operation in ("plan", "apply", "apply"):

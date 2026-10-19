@@ -88,8 +88,7 @@ class Application:
                 variable = self.patch_vars.setdefault(patch.id, tk.BooleanVar(self.root, False))
                 register(ttk.Checkbutton(self.patch_frame, text=patch.title[tr.language],
                                          variable=variable, command=self._invalidate)).pack(anchor="w", pady=(4, 0))
-                status = tr("implemented" if patch.implemented else "placeholder")
-                description = (patch.description[tr.language] + "\n" + status + " · "
+                description = (patch.description[tr.language] + "\n"
                                + tr("dependencies") + ": " + (", ".join(patch.dependencies) or tr("none"))
                                + " · " + tr("conflicts") + ": " + (", ".join(patch.conflicts) or tr("none")))
                 ttk.Label(self.patch_frame, text=description, wraplength=780).pack(anchor="w", padx=(24, 0), pady=(0, 6))

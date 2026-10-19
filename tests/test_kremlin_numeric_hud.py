@@ -1,7 +1,7 @@
 """Synthetic containers and published small instruction contexts, no game files."""
 from pathlib import Path
 import struct
-import tempfile
+from tests.support import temporary_directory
 import unittest
 
 from wasdify.engine import build_result
@@ -139,7 +139,7 @@ class NumericHudTests(unittest.TestCase):
     def test_service_backup_all_patches_and_both_orders(self):
         selected = ("numeric-hud", "wasd", "resolution-640x400", "render-optimization")
         for lang in ("ru", "en"):
-            with tempfile.TemporaryDirectory() as directory:
+            with temporary_directory() as directory:
                 path = Path(directory) / "renamed.exe"
                 source = executable(lang)
                 path.write_bytes(source)
