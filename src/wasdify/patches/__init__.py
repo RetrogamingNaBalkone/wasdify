@@ -8,8 +8,10 @@ from .kremlin_render import RenderOptimization
 from .kremlin_numeric_hud import NumericHud
 from .kremlin_font_scaling import FontScaling
 from .kremlin_settings import GameSettings
+from .kremlin_weapons import WeaponSelectionFix
 
 IMPLEMENTATIONS: dict[tuple[str, str], Patch] = {
+    ("dungeons-of-kremlin", "weapon-selection-fix"): WeaponSelectionFix(),
     ("dungeons-of-kremlin", "game-settings"): GameSettings(),
     ("dungeons-of-kremlin", "font-scaling"): FontScaling(),
     ("dungeons-of-kremlin", "numeric-hud"): NumericHud(),

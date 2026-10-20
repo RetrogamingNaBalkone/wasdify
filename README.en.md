@@ -1,5 +1,8 @@
 # WASDify
 
+`weapon-selection-fix` for Dungeons of Kremlin removes an unsafe weapon-pointer
+read: [Ghidra analysis and validation limits](docs/games/dungeons-of-kremlin/weapons.md).
+
 [Русский](README.md) · [Documentation](docs/README.md)
 
 Targeted binary patches for classic games: modern controls, important bug fixes
@@ -56,10 +59,13 @@ From the repository root:
 
 The output is one standalone **`dist\WASDify.exe`**, requiring no installed Python:
 
-- Double-click or run without arguments to open the GUI; its own console is hidden at startup.
+- Double-click or run without arguments to open the GUI without creating a console window.
 - Commands run the CLI: `.\dist\WASDify.exe --lang en games`. Terminal output,
   redirection and exit codes are preserved.
 - To choose the GUI language: `.\dist\WASDify.exe gui --lang en`.
+
+In interactive PowerShell, use a pipeline to wait for the CLI and read
+`$LASTEXITCODE`: `.\dist\WASDify.exe --lang en games | Out-Host`.
 
 The EXE can be moved elsewhere. Game metadata, translations and Tcl/Tk are
 bundled; `originals/` and `mqa/` are not included.

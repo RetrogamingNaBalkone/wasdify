@@ -164,5 +164,7 @@
   "dos_key_65": "F7",
   "dos_key_66": "F8",
   "dos_key_67": "F9",
-  "dos_key_68": "F10"
+  "dos_key_68": "F10",
+  "weapon_selection_fix_title": "Weapon selection fix",
+  "weapon_selection_fix_description": "Safely reselect weapons without dereferencing the current weapon pointer."
 }

@@ -3,6 +3,7 @@ import json
 import os
 from pathlib import Path
 import subprocess
+import struct
 import sys
 
 
@@ -30,11 +31,10 @@ def main() -> int:
     for pattern in ("*.asm", "*.inc"):
         for source in sorted((package / "patches").glob(pattern)):
             common.extend(["--add-data", str(source)+os.pathsep+"wasdify/patches"])
-    # Retain standard streams, pipes and exit codes for CLI callers. The
-    # bootloader hides only a console owned by this app (Explorer launch),
-    # never the terminal from which the user ran a command.
+    # A Windows GUI subsystem prevents console creation, including the one-file
+    # parent process. The entry point restores output for CLI callers.
     subprocess.run(
-        [*common, "--name", "WASDify", "--console", "--hide-console", "hide-early",
+        [*common, "--name", "WASDify", "--windowed",
          str(root / "scripts" / "entry_exe.py")],
         cwd=root, env=environment, check=True,
     )
@@ -44,6 +44,12 @@ def main() -> int:
     smoke = work / "smoke"
     smoke.mkdir(parents=True, exist_ok=True)
     cli = dist / "WASDify.exe"
+    with cli.open("rb") as executable:
+        executable.seek(0x3C)
+        pe_offset = struct.unpack("<I", executable.read(4))[0]
+        executable.seek(pe_offset + 24 + 68)
+        if struct.unpack("<H", executable.read(2))[0] != 2:
+            raise RuntimeError("The executable must use the Windows GUI subsystem")
     expected = json.loads((root / "src" / "wasdify" / "data" / "games.json").read_text("utf-8"))
     for language in ("ru", "en"):
         for game in expected["games"]:
@@ -61,7 +67,10 @@ def main() -> int:
         payloads = json.loads((package / "data/kremlin_settings.json").read_text("ascii"))
         if (setup_directory / "SETUP.EXE").read_bytes() != bytes.fromhex(payloads["setup"][language]):
             raise RuntimeError("Unexpected DOS setup payload in the executable")
-    subprocess.run([str(cli), "--version"], cwd=smoke, env=environment, check=True, timeout=60)
+    version = subprocess.run([str(cli), "--version"], cwd=smoke, env=environment,
+                             check=True, capture_output=True, text=True, timeout=60)
+    if not version.stdout.startswith("WASDify "):
+        raise RuntimeError("Missing CLI version output")
     # Check explicit GUI command parsing in the same executable.
     subprocess.run([str(cli), "gui", "--lang", "ru", "--help"],
                    cwd=smoke, env=environment, check=True, timeout=60)

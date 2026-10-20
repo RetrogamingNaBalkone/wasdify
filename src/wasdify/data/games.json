@@ -126,6 +126,23 @@
           "dependencies": [],
           "conflicts": [],
           "implemented": true
+        },
+        {
+          "id": "weapon-selection-fix",
+          "title": {
+            "ru": "Исправление выбора оружия",
+            "en": "Weapon selection fix"
+          },
+          "description": {
+            "ru": "Безопасный повторный выбор оружия: используется номер текущего слота без разыменования указателя на оружие. RUS/ENG.",
+            "en": "Safely reselect weapons using the current slot number without dereferencing the weapon pointer. RUS/ENG."
+          },
+          "roles": [
+            "main"
+          ],
+          "dependencies": [],
+          "conflicts": [],
+          "implemented": true
         }
       ]
     }
