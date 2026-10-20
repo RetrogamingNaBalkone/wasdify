@@ -156,7 +156,7 @@ class SettingsTests(unittest.TestCase):
             service=Service()
             ru=service.export_setup(directory,'ru');raw=ru.path.read_bytes()
             self.assertEqual(raw[:2],b'MZ')
-            self.assertIn(messages('ru')['dos_title'].upper().replace('Ё','Е').replace('WASDIFY','WASDify').encode('cp866'),raw)
+            self.assertIn(messages('ru')['dos_title'].replace('ё','е').replace('Ё','Е').encode('cp866'),raw)
             self.assertEqual(service.export_setup(directory,'ru').status,'no_changes')
             with self.assertRaises(WasdifyError):service.export_setup(directory,'en')
             en=service.export_setup(directory,'en',overwrite=True)

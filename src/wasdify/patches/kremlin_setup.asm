@@ -48,8 +48,14 @@ start:
     mov bp, russian_font
     mov ax, 0x1100
     mov bx, 0x1000
-    mov cx, 32
+    mov cx, 48
     mov dx, 128
+    int 0x10
+    mov bp, russian_font_tail
+    mov ax, 0x1100
+    mov bx, 0x1000
+    mov cx, 16
+    mov dx, 224
     int 0x10
     pop bp
     pop es
@@ -164,6 +170,7 @@ enter:
 .failed:
     mov si, ui_write_error
 message:
+    call status_cursor
     call puts
     xor ah, ah
     int 0x16
@@ -243,14 +250,17 @@ draw:
     rep stosw
     mov ah, 2
     xor bx, bx
-    xor dx, dx
+    mov dx, 0x0103
     int 0x10
     mov si, ui_title
     call puts
-    mov si, ui_help
-    call puts
     xor bp, bp
 .row:
+    mov dx, bp
+    mov dh, dl
+    add dh, 3                    ; rows 3..21, all 19 actions fit
+    mov dl, 2
+    call set_cursor
     mov si, ui_blank
     cmp bp, [CFG_WORK+32]
     jne .marker
@@ -287,8 +297,6 @@ draw:
     mov al, [CFG_BINDINGS+bx+1]
     call print_key
 .newline:
-    mov si, ui_crlf
-    call puts
     inc bp
     mov ax, 6
     cmp byte [CFG_WORK+36], 0
@@ -297,6 +305,25 @@ draw:
 .limit:
     cmp bp, ax
     jb .row
+    ; Apply attributes after glyph output: BIOS teletype preserves text cells.
+    ; Keep the > marker as an additional, non-colour selection cue.
+    mov ax, [CFG_WORK+32]
+    add ax, 3
+    mov di, 160
+    mul di
+    mov di, ax
+    add di, 5                    ; row column 2, attribute byte
+    mov cx, 76
+.highlight:
+    mov byte [es:di], 0x1f        ; bright white on blue, entire menu row
+    add di, 2
+    loop .highlight
+    mov dx, 0x1702
+    call set_cursor
+    mov si, ui_help
+    call puts
+    mov dx, 0x1605
+    call set_cursor
     cmp byte [CFG_WORK+36], 0
     je .done
     mov si, ui_slot
@@ -305,11 +332,33 @@ draw:
     inc ax
     call print_number
 .done:
+    ; Hide the hardware cursor below the menu; restore via video mode on exit.
+    mov ah, 1
+    mov cx, 0x2000
+    int 0x10
     pop es
     popad
     ret
 
+set_cursor:                     ; DH row, DL column; preserve menu registers
+    push ax
+    push bx
+    mov ah, 2
+    xor bx, bx
+    int 0x10
+    pop bx
+    pop ax
+    ret
+
+status_cursor:
+    push dx
+    mov dx, 0x1802
+    call set_cursor
+    pop dx
+    ret
+
 capture_binding:
+    call status_cursor
     mov si, ui_capture
     call puts
     mov ax, 0x3509

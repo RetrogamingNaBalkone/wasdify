@@ -6,46 +6,11 @@ from pathlib import Path
 import struct
 import subprocess
 import sys
+from kremlin_setup_font import glyphs
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 from wasdify.patches import kremlin_settings_spec as spec
-
-# Original 5x7 uppercase Cyrillic rasters, doubled vertically in an 8x16 cell.
-FONT = (
- "01110 10001 10001 11111 10001 10001 10001", # А
- "11111 10000 10000 11110 10001 10001 11110", # Б
- "11110 10001 10001 11110 10001 10001 11110", # В
- "11111 10000 10000 10000 10000 10000 10000", # Г
- "01110 01010 01010 01010 01010 11111 10001", # Д
- "11111 10000 10000 11110 10000 10000 11111", # Е
- "10101 10101 10101 01110 10101 10101 10101", # Ж
- "01110 10001 00001 00110 00001 10001 01110", # З
- "10001 10001 10011 10101 11001 10001 10001", # И
- "01010 00100 10001 10011 10101 11001 10001", # Й
- "10001 10010 10100 11000 10100 10010 10001", # К
- "00111 01001 01001 01001 01001 01001 10001", # Л
- "10001 11011 10101 10101 10001 10001 10001", # М
- "10001 10001 10001 11111 10001 10001 10001", # Н
- "01110 10001 10001 10001 10001 10001 01110", # О
- "11111 10001 10001 10001 10001 10001 10001", # П
- "11110 10001 10001 11110 10000 10000 10000", # Р
- "01111 10000 10000 10000 10000 10000 01111", # С
- "11111 00100 00100 00100 00100 00100 00100", # Т
- "10001 10001 10001 01111 00001 10001 01110", # У
- "00100 01110 10101 10101 10101 01110 00100", # Ф
- "10001 10001 01010 00100 01010 10001 10001", # Х
- "10010 10010 10010 10010 10010 11111 00001", # Ц
- "10001 10001 10001 01111 00001 00001 00001", # Ч
- "10101 10101 10101 10101 10101 10101 11111", # Ш
- "10101 10101 10101 10101 10101 11111 00001", # Щ
- "11000 01000 01000 01110 01001 01001 01110", # Ъ
- "10001 10001 10001 11101 10011 10011 11101", # Ы
- "10000 10000 10000 11110 10001 10001 11110", # Ь
- "01110 10001 00001 00111 00001 10001 01110", # Э
- "10110 11001 11001 11001 11001 11001 10110", # Ю
- "01111 10001 10001 01111 00101 01001 10001", # Я
-)
 
 
 def db(label, value):
@@ -80,7 +45,7 @@ def tables(work):
 def ui(work, lang):
     locale = json.loads((ROOT / f"src/wasdify/locales/{lang}.json").read_text("utf-8"))
     def tr(key):
-        return locale["dos_" + key].upper().replace("Ё", "Е").replace("WASDIFY", "WASDify") if lang == "ru" else locale["dos_" + key]
+        return locale["dos_" + key].replace("ё", "е").replace("Ё", "Е")
     text = ""
     for key in ("title", "help", "capture", "slot", "saved", "conflict", "write_error", "path_error"):
         text += db("ui_" + key, tr(key))
@@ -88,9 +53,9 @@ def ui(work, lang):
         text += db("ui_" + key, val)
     main = ("video", "mouse", "keys", "defaults", "save", "exit")
     text += "main_labels: dw " + ",".join("label_"+k for k in main) + "\n"
-    text += "".join(db("label_"+k, tr(k)+": ") for k in main)
+    text += "".join(db("label_"+k, (tr(k)+":").ljust(27) if k in ("video", "mouse") else tr(k)) for k in main)
     text += "action_labels: dw " + ",".join("label_"+a[0] for a in spec.ACTIONS) + "\n"
-    text += "".join(db("label_"+a[0], tr(a[0]).ljust(24)) for a in spec.ACTIONS)
+    text += "".join(db("label_"+a[0], tr(a[0]).ljust(27)) for a in spec.ACTIONS)
     modes = ("auto", "vga", "640x400", "640x480", "800x600", "1024x768")
     text += "mode_labels: dw " + ",".join("mode_"+str(i) for i in range(6)) + "\n"
     text += "".join(db("mode_"+str(i), tr(k) if i < 2 else k) for i, k in enumerate(modes))
@@ -105,9 +70,9 @@ def ui(work, lang):
     names.update({i: tr("key_"+str(i)) for i in names if i != 0 and len(names[i]) > 1})
     text += "scan_labels: dw " + ",".join("scan_"+str(i) for i in range(128)) + "\n"
     text += "".join(db("scan_"+str(i), names.get(i,"?")) for i in range(128))
-    font = b"".join(b"\0" + b"".join(bytes((int(row,2)<<1,))*2 for row in glyph.split()) + b"\0" for glyph in FONT)
-    assert len(font) == 512
-    text += db("russian_font", font)
+    font = glyphs()
+    text += db("russian_font", b"".join(font[:48]))
+    text += db("russian_font_tail", b"".join(font[48:]))
     (work / "settings-ui.inc").write_text(text, encoding="ascii")
 
 
