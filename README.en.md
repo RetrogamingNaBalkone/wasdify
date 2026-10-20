@@ -17,44 +17,9 @@ The application shell, detection, planning, masked signature search, dependency
 checks, safe file replacement and optional backups are implemented. Both
 interfaces support Russian and English.
 
-The first game is **Dungeons of Kremlin / Подземелья Кремля**. The catalog includes
-Russian `PKR.EXE` and English `PKE.EXE`. Four patches are implemented:
-
-| Patch | ID | Status |
-|---|---|---|
-| WASD controls and direct mouse turning | `wasd` | Implemented for RUS/ENG |
-| `-r1`: 640×400 instead of 640×480 | `resolution-640x400` | Implemented for RUS/ENG |
-| Render optimization | `render-optimization` | RUS/ENG; [RUS profiling-copy measurements](docs/games/dungeons-of-kremlin/benchmark.md), ENG measurements pending |
-| Numeric life and charge | `numeric-hud` | RUS/ENG; [two fields with native icons](docs/games/dungeons-of-kremlin/numeric-hud.md) |
-
-The render patch saves two instructions per horizontal textured pixel and remains
-an optional improvement. RUS profiling copies gained 6.8–10.5% in median FPS
-with `normal/60000`. Further renderer optimization has been removed from the active plan.
-[Analysis, checks and limitations](docs/games/dungeons-of-kremlin/render.md).
-An incompatible patch blocks the entire selected set. The resolution patch changes one byte after validating
-a unique NE code signature; repeat application is a no-op. Both versions were
-analyzed and emulated for the resolution patch; its separate visual DOSBox check is pending.
-See the [analysis and limits](docs/games/dungeons-of-kremlin/analysis.md).
-
-The WASD patch preserves arrow keys and adds independent direct horizontal
-mouse turning, enabled automatically. The user confirmed it works in-game.
-Default sensitivity is 0.2 degrees per mouse counter unit; tuning across
-computers and DOSBox configurations remains follow-up playtesting.
-See [controls and verification](docs/games/dungeons-of-kremlin/wasd.md).
-
-For game performance in **DOSBox Staging 0.83**, first add or update this
-section in the configuration file you use, then restart DOSBox:
-
-```ini
-[cpu]
-core = dynamic
-cpu_cycles_protected = max
-```
-
-This configuration resolved the user's performance issue. In our profiling
-setup, the original PKR.EXE reached about 275 FPS at 640×480, compared with 14
-using `normal/60000`. See the [method and limitations](docs/games/dungeons-of-kremlin/benchmark.md).
-The WASD and resolution fixes remain independent of renderer optimization.
+The first supported game is **Dungeons of Kremlin / Подземелья Кремля**.
+Patch details, supported versions, instructions and verification results are in
+the [game documentation](docs/games/dungeons-of-kremlin/README.md) (Russian).
 
 ## Install
 
@@ -82,13 +47,14 @@ From the repository root:
 .\build.ps1
 ```
 
-Output consists of two standalone files requiring no installed Python:
+The output is one standalone **`dist\WASDify.exe`**, requiring no installed Python:
 
-- **`dist\WASDify.exe`** — GUI; double-click to open without a console window.
-- **`dist\wasdify-cli.exe`** — CLI, e.g. `.\dist\wasdify-cli.exe --lang en games`.
+- Double-click or run without arguments to open the GUI; its own console is hidden at startup.
+- Commands run the CLI: `.\dist\WASDify.exe --lang en games`. Terminal output,
+  redirection and exit codes are preserved.
+- To choose the GUI language: `.\dist\WASDify.exe gui --lang en`.
 
-For this checkout, the full GUI path is `C:\Source\wasdify\dist\WASDify.exe`.
-The EXE files can be moved elsewhere. Game metadata, translations and Tcl/Tk are
+The EXE can be moved elsewhere. Game metadata, translations and Tcl/Tk are
 bundled; `originals/` and `mqa/` are not included.
 
 Building requires Windows, Python 3.11+ with Tcl/Tk, and internet access for the
@@ -96,7 +62,8 @@ initial tool installation. The script creates an isolated `build\exe\venv`
 using `.venv`'s Python if available, otherwise `py -3`, then installs the package
 with the `exe` extra and runs PyInstaller. Intermediate files stay in `build\exe\`;
 both `build/` and `dist/` are Git-ignored. The build checks the standalone CLI,
-RU/EN resources and GUI entry-point loading automatically.
+RU/EN resources, exit codes and GUI command help automatically.
+The obsolete `dist\wasdify-cli.exe` from earlier builds is removed after successful checks.
 
 If local PowerShell policy prevents running scripts, use:
 
@@ -115,17 +82,13 @@ wasdify --lang en games
 wasdify detect "C:\Games\Kremlin\PKE.EXE"
 wasdify patches --game dungeons-of-kremlin
 wasdify apply "C:\Games\Kremlin\PKE.EXE" --patch wasd
-wasdify plan "C:\Games\Kremlin\PKE.EXE" --patch resolution-640x400
-wasdify apply "C:\Games\Kremlin\PKE.EXE" --patch resolution-640x400
 wasdify gui
 python -m wasdify --help
 ```
 
 `plan` never writes files. `apply` revalidates the set before writing. For an
-unknown EXE, `--game dungeons-of-kremlin` supplies the analysis context without
-bypassing patch checks. The resolution probe recognizes compatible original
-and patched code regardless of filename or whole-file hash. Run the patched
-game with `-r1` in DOS/DOSBox; `-r2` remains 640×480.
+unknown EXE, `--game <game-id>` supplies the analysis context without bypassing
+patch compatibility checks. Game-specific launch instructions are in the game documentation.
 
 `--lang ru|en` and `--json` work before or after the subcommand. The default
 language follows the system locale: Russian for `ru`, English otherwise.

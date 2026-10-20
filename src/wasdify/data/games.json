@@ -94,6 +94,23 @@
           "dependencies": [],
           "conflicts": [],
           "implemented": true
+        },
+        {
+          "id": "font-scaling",
+          "title": {
+            "ru": "Масштабирование шрифтов",
+            "en": "Font scaling"
+          },
+          "description": {
+            "ru": "Масштабирует игровой шрифт относительно 320×200: меню, надписи и числовой HUD. Размеры символов, интервалы и переносы строк учитывают разрешение. RUS/ENG.",
+            "en": "Scale the game font relative to 320×200 in menus, messages and the numeric HUD. Glyph dimensions, spacing and line breaks follow the resolution. RUS/ENG."
+          },
+          "roles": [
+            "main"
+          ],
+          "dependencies": [],
+          "conflicts": [],
+          "implemented": true
         }
       ]
     }

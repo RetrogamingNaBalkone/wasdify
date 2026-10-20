@@ -1,4 +1,4 @@
-"""Build standalone Windows GUI/CLI executables and smoke-test their resources."""
+"""Build one standalone Windows GUI/CLI executable and check its resources."""
 import json
 import os
 from pathlib import Path
@@ -23,20 +23,20 @@ def main() -> int:
         "--distpath", str(dist), "--workpath", str(work / "pyinstaller"),
         "--specpath", str(work / "spec"),
     ]
-    for name, entry, mode in (
-        ("wasdify-cli", "entry_cli.py", "--console"),
-        ("WASDify", "entry_gui.py", "--windowed"),
-    ):
-        subprocess.run(
-            [*common, "--name", name, mode, str(root / "scripts" / entry)],
-            cwd=root, env=environment, check=True,
-        )
+    # Retain standard streams, pipes and exit codes for CLI callers. The
+    # bootloader hides only a console owned by this app (Explorer launch),
+    # never the terminal from which the user ran a command.
+    subprocess.run(
+        [*common, "--name", "WASDify", "--console", "--hide-console", "hide-early",
+         str(root / "scripts" / "entry_exe.py")],
+        cwd=root, env=environment, check=True,
+    )
 
     # Run from outside the source tree; no Python installation or source resource
     # paths are used by these processes. Check both translations and the catalog.
     smoke = work / "smoke"
     smoke.mkdir(parents=True, exist_ok=True)
-    cli = dist / "wasdify-cli.exe"
+    cli = dist / "WASDify.exe"
     expected = json.loads((root / "src" / "wasdify" / "data" / "games.json").read_text("utf-8"))
     for language in ("ru", "en"):
         for game in expected["games"]:
@@ -47,12 +47,18 @@ def main() -> int:
             if json.loads(completed.stdout)["patches"] != game["patches"]:
                 raise RuntimeError("Unexpected game catalog in the executable")
     subprocess.run([str(cli), "--version"], cwd=smoke, env=environment, check=True, timeout=60)
-    # The GUI entry point must also load its translations without a console.
-    subprocess.run([str(dist / "WASDify.exe"), "--lang", "ru", "--help"],
+    # Check explicit GUI command parsing in the same executable.
+    subprocess.run([str(cli), "gui", "--lang", "ru", "--help"],
                    cwd=smoke, env=environment, check=True, timeout=60)
+    invalid = subprocess.run([str(cli), "--json", "unknown"], cwd=smoke,
+                             env=environment, capture_output=True, text=True, timeout=60)
+    if invalid.returncode != 2 or json.loads(invalid.stdout)["issues"][0]["code"] != "invalid_arguments":
+        raise RuntimeError("Unexpected CLI error output or exit code")
+    # Remove the obsolete output of earlier two-executable builds only after
+    # the replacement has passed its checks.
+    (dist / "wasdify-cli.exe").unlink(missing_ok=True)
     print("\nBuild and smoke checks passed:", flush=True)
-    for name in ("WASDify.exe", "wasdify-cli.exe"):
-        print(dist / name, flush=True)
+    print(cli, flush=True)
     return 0
 
 
