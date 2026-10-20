@@ -19,10 +19,17 @@ def main() -> int:
     common = [
         sys.executable, "-m", "PyInstaller", "--noconfirm", "--clean",
         "--onefile", "--noupx", "--paths", str(root / "src"),
-        "--collect-data", "wasdify", "--collect-submodules", "wasdify",
         "--distpath", str(dist), "--workpath", str(work / "pyinstaller"),
         "--specpath", str(work / "spec"),
     ]
+    # Collection helpers can resolve an older wasdify installed in the build
+    # environment, independently of Analysis.pathex. Always bundle this checkout.
+    package = root / "src" / "wasdify"
+    for directory in ("data", "locales"):
+        common.extend(["--add-data", str(package / directory)+os.pathsep+"wasdify/"+directory])
+    for pattern in ("*.asm", "*.inc"):
+        for source in sorted((package / "patches").glob(pattern)):
+            common.extend(["--add-data", str(source)+os.pathsep+"wasdify/patches"])
     # Retain standard streams, pipes and exit codes for CLI callers. The
     # bootloader hides only a console owned by this app (Explorer launch),
     # never the terminal from which the user ran a command.
@@ -46,6 +53,14 @@ def main() -> int:
             )
             if json.loads(completed.stdout)["patches"] != game["patches"]:
                 raise RuntimeError("Unexpected game catalog in the executable")
+        setup_directory = smoke / ("dos-setup-"+language)
+        setup_directory.mkdir(exist_ok=True)
+        subprocess.run([str(cli), "setup", str(setup_directory), "--setup-lang", language,
+                        "--overwrite", "--json"], cwd=smoke, env=environment,
+                       check=True, capture_output=True, text=True, timeout=60)
+        payloads = json.loads((package / "data/kremlin_settings.json").read_text("ascii"))
+        if (setup_directory / "SETUP.EXE").read_bytes() != bytes.fromhex(payloads["setup"][language]):
+            raise RuntimeError("Unexpected DOS setup payload in the executable")
     subprocess.run([str(cli), "--version"], cwd=smoke, env=environment, check=True, timeout=60)
     # Check explicit GUI command parsing in the same executable.
     subprocess.run([str(cli), "gui", "--lang", "ru", "--help"],

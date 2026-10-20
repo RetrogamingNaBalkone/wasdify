@@ -1,10 +1,11 @@
 """Shared application service for CLI and GUI."""
 from pathlib import Path
+import os
 from typing import Callable, Mapping
 
 from .catalog import Catalog, load_catalog
 from .engine import build_result, order_patches
-from .models import (ApplyResult, Detection, Issue, Patch, PatchDefinition, Plan,
+from .models import (ApplyResult, Detection, Issue, Patch, PatchDefinition, Plan, SetupExportResult,
                      WasdifyError)
 from .patches import GAME_PROBES, IMPLEMENTATIONS
 from .storage import read_target, sha256, write_result
@@ -38,7 +39,14 @@ class Service:
         if matches:
             if game_id and game_id != matches[0]:
                 raise WasdifyError("game_mismatch", game=game_id, detected=matches[0])
-            return Detection(digest, len(data), matches[0], method="signature")
+            language = None
+            if matches[0] == "dungeons-of-kremlin":
+                from .patches.kremlin_settings import detect_language
+                try:
+                    language = detect_language(data)
+                except WasdifyError:
+                    pass
+            return Detection(digest, len(data), matches[0], language=language, method="signature")
         hints = tuple(game.id for game in self.catalog.games if any(
             version.filename.casefold() == path.name.casefold() for version in game.versions))
         return Detection(digest, len(data), game_id, method="manual" if game_id else "unknown", hints=hints)
@@ -49,6 +57,38 @@ class Service:
 
     def list_patches(self, game_id: str) -> tuple[PatchDefinition, ...]:
         return self.catalog.game(game_id).patches
+
+    def export_setup(self, directory: str | Path, language: str,
+                     overwrite: bool = False) -> SetupExportResult:
+        """Export the selected DOS language, independently of the frontend locale."""
+        from .patches.kremlin_settings import resources
+        if language not in ("ru", "en"):
+            raise WasdifyError("setup_language_required")
+        path = Path(directory).absolute() / "SETUP.EXE"
+        payload = bytes.fromhex(resources()["setup"][language])
+        digest = sha256(payload)
+        if path.exists() or path.is_symlink():
+            current = read_target(path)
+            if current == payload:
+                return SetupExportResult("no_changes", path, language, digest)
+            if not overwrite:
+                raise WasdifyError("setup_exists", path=str(path))
+            result = write_result(path, sha256(current), payload, backup=True)
+            return SetupExportResult(result.status, path, language, digest, result.backup)
+        created = False
+        try:
+            with path.open("xb") as output:
+                created = True
+                output.write(payload)
+                output.flush()
+                os.fsync(output.fileno())
+            if read_target(path) != payload:
+                raise OSError("setup verification failed")
+        except OSError as error:
+            if created:
+                path.unlink(missing_ok=True)
+            raise WasdifyError("write_failed", path=str(path)) from error
+        return SetupExportResult("exported", path, language, digest)
 
     def plan(self, targets: Mapping[str, str | Path], selected: tuple[str, ...],
              game_id: str | None = None) -> Plan:
@@ -73,7 +113,23 @@ class Service:
             except WasdifyError as error:
                 issues.append(error.issue)
             definitions = {p.id: p for p in game.patches}
-            for patch_id in ordered:
+            grouped = None
+            if "game-settings" in ordered:
+                from .patches.kremlin_settings import GameSettings, analyze_selection
+                if (isinstance(self.implementations.get((game.id, "game-settings")), GameSettings)
+                        and all(definitions[p].implemented and (game.id,p) in self.implementations for p in ordered)):
+                    try:
+                        grouped = analyze_selection(data["main"], ordered, self.implementations, game.id)
+                    except WasdifyError as error:
+                        issues.append(error.issue)
+                        ordered_to_analyze = ()
+                    else:
+                        ordered_to_analyze = ordered
+                else:
+                    ordered_to_analyze = ordered
+            else:
+                ordered_to_analyze = ordered
+            for patch_id in ordered_to_analyze:
                 definition = definitions[patch_id]
                 if not definition.implemented:
                     issues.append(Issue("not_implemented", {"patch": patch_id}))
@@ -87,7 +143,7 @@ class Service:
                     issues.append(Issue("implementation_missing", {"patch": patch_id}))
                     continue
                 try:
-                    analysis = implementation.analyze(data)
+                    analysis = grouped[patch_id] if grouped is not None else implementation.analyze(data)
                 except WasdifyError as error:
                     issues.append(error.issue)
                     continue

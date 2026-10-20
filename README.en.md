@@ -23,6 +23,13 @@ the [game documentation](docs/games/dungeons-of-kremlin/README.md) (Russian).
 
 ## Install
 
+[DOS game settings](docs/games/dungeons-of-kremlin/settings.md) for Dungeons of
+Kremlin are available through `game-settings`; explicitly select `wasd` and
+`resolution-640x400` as well. Export the matching language using
+`wasdify setup C:\Games\Kremlin\ENG --setup-lang en` or
+`wasdify setup C:\Games\Kremlin\RUS --setup-lang ru`. The game EXE reads
+KREMLIN.INI directly; the DOS setup language is independent of the WASDify UI.
+
 Requires **Python 3.11+**, with Tcl/Tk for the GUI. Windows is the primary tested
 platform. Raising the minimum Python version requires a technical justification
 and separate approval. There are no third-party runtime dependencies.

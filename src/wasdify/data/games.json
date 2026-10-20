@@ -96,6 +96,21 @@
           "implemented": true
         },
         {
+          "id": "game-settings",
+          "title": {
+            "ru": "Настройки игры через DOS setup и INI",
+            "en": "Game settings through DOS setup and INI"
+          },
+          "description": {
+            "ru": "Чтение KREMLIN.INI основным EXE: разрешение, чувствительность мыши и по две клавиши на действие. Отдельные русский и английский DOS SETUP.EXE выгружаются через WASDify. Требует явного выбора WASD и исправления 640×400.",
+            "en": "Read KREMLIN.INI in the game EXE: resolution, mouse sensitivity and two keys per action. Export separate Russian and English DOS SETUP.EXE builds through WASDify. Explicitly select WASD and the 640×400 fix."
+          },
+          "roles": ["main"],
+          "dependencies": ["wasd", "resolution-640x400"],
+          "conflicts": [],
+          "implemented": true
+        },
+        {
           "id": "font-scaling",
           "title": {
             "ru": "Масштабирование шрифтов",

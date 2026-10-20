@@ -99,6 +99,15 @@ class ApplyResult:
     backup: Path | None = None
 
 
+@dataclass(frozen=True)
+class SetupExportResult:
+    status: str
+    path: Path
+    language: str
+    sha256: str
+    backup: Path | None = None
+
+
 def exit_code(issues: tuple[Issue, ...]) -> int:
     if any(issue.code in {"io_error", "backup_failed", "write_failed", "gui_unavailable"}
            for issue in issues):

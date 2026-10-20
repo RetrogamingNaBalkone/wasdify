@@ -22,6 +22,12 @@ WASDify предоставляет общий движок, CLI и GUI. Поль
 
 ## Установка
 
+Для «Подземелий Кремля» доступны [настройки через DOS setup и INI](docs/games/dungeons-of-kremlin/settings.md):
+патч `game-settings` вместе с явно выбранными `wasd` и `resolution-640x400`.
+Русский setup: `wasdify setup C:\Games\Kremlin\RUS --setup-lang ru`, английский:
+`wasdify setup C:\Games\Kremlin\ENG --setup-lang en`. Язык DOS setup независим
+от языка интерфейса WASDify. Основной EXE игры читает настройки самостоятельно.
+
 Нужны **Python 3.11 или новее** и Tcl/Tk для GUI. Windows — основная проверяемая
 платформа. Минимальная версия Python повышается только по технической необходимости
 с отдельным согласованием. Зависимостей времени выполнения вне стандартной библиотеки нет.

@@ -7,8 +7,10 @@ from .kremlin_wasd import WasdControls
 from .kremlin_render import RenderOptimization
 from .kremlin_numeric_hud import NumericHud
 from .kremlin_font_scaling import FontScaling
+from .kremlin_settings import GameSettings
 
 IMPLEMENTATIONS: dict[tuple[str, str], Patch] = {
+    ("dungeons-of-kremlin", "game-settings"): GameSettings(),
     ("dungeons-of-kremlin", "font-scaling"): FontScaling(),
     ("dungeons-of-kremlin", "numeric-hud"): NumericHud(),
     ("dungeons-of-kremlin", "render-optimization"): RenderOptimization(),

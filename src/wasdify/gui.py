@@ -6,7 +6,7 @@ import tkinter as tk
 from tkinter import filedialog, ttk
 
 from .i18n import Translator
-from .models import ApplyResult, Detection, Issue, Plan, WasdifyError
+from .models import ApplyResult, Detection, Issue, Plan, SetupExportResult, WasdifyError
 from .presentation import apply_text, detection_text, plan_text
 from .service import Service
 
@@ -20,13 +20,15 @@ class Application:
         self.path = tk.StringVar(root)
         self.backup = tk.BooleanVar(root, True)
         self.language = tk.StringVar(root, self.tr.language)
+        self.setup_language = tk.StringVar(root, "ru")
+        self.setup_language_chosen = False
         self.game_choice = tk.StringVar(root)
         self.manual_game_id: str | None = None
         self.detected_game_id: str | None = None
         self.patch_vars: dict[str, tk.BooleanVar] = {}
         self.patch_game_id: str | None = None
         self.plan: Plan | None = None
-        self.last_result: Detection | Plan | ApplyResult | Issue | None = None
+        self.last_result: Detection | Plan | ApplyResult | SetupExportResult | Issue | None = None
         self.busy = False
         self.queue: Queue = Queue()
         self.root.title("WASDify")
@@ -77,8 +79,18 @@ class Application:
         register(ttk.Button(frame, text=tr("browse"), command=self.browse)).grid(
             row=2, column=2, padx=(8, 0), pady=6)
 
-        self.patch_frame = ttk.LabelFrame(frame, text=tr("patches"), padding=10)
-        self.patch_frame.grid(row=3, column=0, columnspan=3, sticky="ew", pady=10)
+        patch_outer = ttk.LabelFrame(frame, text=tr("patches"), padding=10)
+        patch_outer.grid(row=3, column=0, columnspan=3, sticky="ew", pady=10)
+        patch_outer.columnconfigure(0, weight=1)
+        canvas = tk.Canvas(patch_outer, height=260, highlightthickness=0, takefocus=False)
+        canvas.grid(row=0, column=0, sticky="ew")
+        patch_scroll = ttk.Scrollbar(patch_outer, command=canvas.yview)
+        patch_scroll.grid(row=0, column=1, sticky="ns")
+        canvas.configure(yscrollcommand=patch_scroll.set)
+        self.patch_frame = ttk.Frame(canvas)
+        patch_window = canvas.create_window(0, 0, anchor="nw", window=self.patch_frame)
+        canvas.bind("<Configure>", lambda event: canvas.itemconfigure(patch_window, width=event.width))
+        self.patch_frame.bind("<Configure>", lambda event: canvas.configure(scrollregion=canvas.bbox("all")))
         game_id = self.manual_game_id or self.detected_game_id
         if game_id != self.patch_game_id:
             self.patch_vars.clear()
@@ -103,6 +115,13 @@ class Application:
         self.check_button.grid(row=0, column=1, padx=8)
         self.apply_button = ttk.Button(actions, text=tr("apply"), command=self.apply)
         self.apply_button.grid(row=0, column=2)
+        ttk.Label(actions, text=tr("setup_language_label")).grid(row=1, column=0, sticky="w", pady=(8,0))
+        setup_box = register(ttk.Combobox(actions, textvariable=self.setup_language,
+                                         values=("ru", "en"), width=5, state="readonly"), "readonly")
+        setup_box.grid(row=1, column=1, padx=8, pady=(8,0))
+        setup_box.bind("<<ComboboxSelected>>", lambda event: setattr(self, "setup_language_chosen", True))
+        register(ttk.Button(actions, text=tr("setup_export_button"), command=self.export_setup)).grid(
+            row=1, column=2, pady=(8,0))
 
         results = ttk.LabelFrame(frame, text=tr("result"), padding=8)
         results.grid(row=5, column=0, columnspan=3, sticky="nsew")
@@ -114,7 +133,7 @@ class Application:
         scrollbar = ttk.Scrollbar(results, command=self.result_widget.yview)
         scrollbar.grid(row=0, column=1, sticky="ns")
         self.result_widget.configure(yscrollcommand=scrollbar.set)
-        self.patch_frame.bind("<Configure>", self._wrap_descriptions)
+        self.patch_frame.bind("<Configure>", self._wrap_descriptions, add=True)
         self._show_result()
         self._update_controls()
 
@@ -156,6 +175,8 @@ class Application:
             text += "\n\n" + self.tr("no_patches" if result.game_id else "unknown_file")
         elif isinstance(result, ApplyResult):
             text = apply_text(result, self.tr)
+        elif isinstance(result, SetupExportResult):
+            text = self.tr("setup_exported", path=str(result.path), language=result.language)
         elif isinstance(result, Issue):
             text = self.tr.issue(result)
         else:
@@ -199,10 +220,13 @@ class Application:
             return
         self.busy = False
         self.last_result = result
-        self.plan = result if isinstance(result, Plan) and result.ready else None
+        if not isinstance(result, SetupExportResult):
+            self.plan = result if isinstance(result, Plan) and result.ready else None
         detection = result.detection if isinstance(result, Plan) else result
         if isinstance(detection, Detection):
             self.detected_game_id = detection.game_id
+            if detection.language and not self.setup_language_chosen:
+                self.setup_language.set(detection.language)
         self._build()
 
     def check(self) -> None:
@@ -228,6 +252,14 @@ class Application:
         plan, backup = self.plan, self.backup.get()
         self.plan = None
         self._start(lambda: self.service.apply(plan, backup=backup))
+
+    def export_setup(self) -> None:
+        if self.busy:
+            return
+        directory = filedialog.askdirectory(parent=self.root, title=self.tr("setup_directory_help"))
+        if directory:
+            language = self.setup_language.get()
+            self._start(lambda: self.service.export_setup(directory, language))
 
     def close(self) -> None:
         # Do not destroy Tk while a file transaction is still running.

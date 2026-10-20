@@ -171,6 +171,9 @@ def analyze_profile(data, profile, found):
 class WasdControls:
     def analyze(self, targets: Mapping[str, bytes]) -> PatchAnalysis:
         data = targets["main"]
+        from .kremlin_settings import installed, restore_base
+        if installed(data):
+            data = restore_base(data)
         all_segments = segments(data)
         candidates = []
         for profile in profiles():

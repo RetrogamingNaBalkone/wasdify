@@ -1,0 +1,94 @@
+{
+  "ru": {
+    "segments": 51,
+    "header_tail": "03504b520700000100080000064b45524e454c0455534552000007504b522e455845500000",
+    "contexts": [
+      {
+        "segment": 1,
+        "offset": 18826,
+        "expected": "45558bec83ec025657b0018b4e0af7c10200750ab002f7c104007502b0001ec5"
+      },
+      {
+        "segment": 1,
+        "offset": 2738,
+        "expected": "45558bec56578b5e0603dbf6874c140274046a05eb141eb43f8b5e068b4e0cc5"
+      },
+      {
+        "segment": 1,
+        "offset": 18250,
+        "expected": "45558bec5657b43e8b5e06cd21720c03dbc7874c14000033"
+      },
+      {
+        "segment": 25,
+        "offset": 1992,
+        "expected": "8cd09045558bec1e8ed85657c45e0626814f10de065f5e1f5d4dcb"
+      },
+      {
+        "segment": 25,
+        "offset": 5469,
+        "expected": "8cd09045558bec1e8ed883ec085657"
+      },
+      {
+        "segment": 25,
+        "offset": 6534,
+        "expected": "c45e0626837f1e0074169affff000066c1e010660facd010c45e066626094728c45e0626837f20007e169affff000066c1e010660facd010c45e0666260947285f5e1f5d4d"
+      },
+      {
+        "segment": 17,
+        "offset": 208,
+        "expected": "8cd09045558bec1e8ed883ec0a5657168d46f450168d46f6"
+      }
+    ],
+    "main_pattern": "C7 46 E8 00 00 C7 46 E6 00 00 C7 46 E4 02 00 C7 46 F6 01 00",
+    "joystick_init": [
+      17,
+      208
+    ]
+  },
+  "en": {
+    "segments": 27,
+    "header_tail": "03504b450700000100080000064b45524e454c0455534552000007504b452e455845900000",
+    "contexts": [
+      {
+        "segment": 1,
+        "offset": 18826,
+        "expected": "45558bec83ec025657b0018b4e0af7c10200750ab002f7c104007502b0001ec5"
+      },
+      {
+        "segment": 1,
+        "offset": 2738,
+        "expected": "45558bec56578b5e0603dbf687fc140274046a05eb141eb43f8b5e068b4e0cc5"
+      },
+      {
+        "segment": 1,
+        "offset": 18250,
+        "expected": "45558bec5657b43e8b5e06cd21720c03dbc787fc14000033"
+      },
+      {
+        "segment": 11,
+        "offset": 2859,
+        "expected": "000083c404c45e06268957672689476526c45f6526c7470408001e"
+      },
+      {
+        "segment": 11,
+        "offset": 6336,
+        "expected": "8cd09045558bec1e8ed883ec085657"
+      },
+      {
+        "segment": 11,
+        "offset": 7401,
+        "expected": "c45e0626837f1e0074169affff000066c1e010660facd010c45e066626094728c45e0626837f20007e169affff000066c1e010660facd010c45e0666260947285f5e1f5d4d"
+      },
+      {
+        "segment": 6,
+        "offset": 4666,
+        "expected": "8cd09045558bec1e8ed883ec0a5657168d46f450168d46f6"
+      }
+    ],
+    "main_pattern": "C7 46 AA 00 00 C7 46 A8 00 00 C7 46 A6 02 00 C7 46 B8 01 00",
+    "joystick_init": [
+      6,
+      4666
+    ]
+  }
+}
