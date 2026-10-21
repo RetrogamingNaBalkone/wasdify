@@ -6,6 +6,7 @@ from pathlib import Path
 import struct
 import subprocess
 import sys
+from pak import build_pak
 from kremlin_setup_font import glyphs
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -80,7 +81,8 @@ def build(nasm, refresh=False):
     work = ROOT / "build/settings"
     work.mkdir(parents=True, exist_ok=True)
     tables(work)
-    result = {"format": 1, "data": spec.initial_data().hex(), "runtime": {}, "setup": {}}
+    result = {"format": 1, "data": spec.initial_data().hex(), "runtime": {}}
+    setup = {}
     def assemble(source, name, defines):
         path = work / name
         subprocess.run([str(nasm), "-f", "bin", "-I", str(work)+"/", "-I",
@@ -104,13 +106,25 @@ def build(nasm, refresh=False):
                              0, struct.unpack_from("<H",code,8)[0], 0, 28, 0).ljust(32,b"\0")
         exe = header+image
         (work/f"SETUP-{lang.upper()}.EXE").write_bytes(exe)
-        result["setup"][lang] = exe.hex()
+        setup[f"dungeons-of-kremlin/{lang}/SETUP.EXE"] = exe
         print(lang, "runtime", len(runtime), hashlib.sha256(runtime).hexdigest(),
               "setup", len(exe), hashlib.sha256(exe).hexdigest())
     target = ROOT / "src/wasdify/data/kremlin_settings.json"
+    archive = target.with_name("WASDify.pak")
+    packaged = build_pak(setup)
+    catalog_path = target.with_name("games.json")
+    catalog = json.loads(catalog_path.read_text("utf-8"))
+    declarations = next(p["files"] for g in catalog["games"] if g["id"] == "dungeons-of-kremlin"
+                        for p in g["patches"] if p["id"] == "game-settings")
+    hashes = {name: hashlib.sha256(data).hexdigest() for name, data in setup.items()}
     if refresh:
         target.write_text(json.dumps(result, separators=(",", ":"))+"\n", encoding="ascii")
-    elif result != json.loads(target.read_text("ascii")):
+        archive.write_bytes(packaged)
+        for item in declarations:
+            item["sha256"] = hashes[item["source"]]
+        catalog_path.write_text(json.dumps(catalog, ensure_ascii=False, indent=2)+"\n", encoding="utf-8")
+    elif (result != json.loads(target.read_text("ascii")) or packaged != archive.read_bytes()
+          or any(item["sha256"] != hashes[item["source"]] for item in declarations)):
         raise ValueError("Packaged settings payloads differ; review before --refresh")
 
 

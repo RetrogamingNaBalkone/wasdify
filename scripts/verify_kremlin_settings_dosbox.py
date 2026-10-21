@@ -54,7 +54,6 @@ def trial(language, mode, fresh_setup=False, machine='svga_s3', argument='', sen
     plan=service.plan({'main':exe},patches)
     if not plan.ready:raise RuntimeError(plan.issues)
     service.apply(plan)
-    service.export_setup(game,language)
     if not fresh_setup:
         (game/'KREMLIN.INI').write_bytes(
             f'[wasdify]\r\nversion=1\r\n[video]\r\nmode={mode}\r\n[mouse]\r\nsensitivity={sensitivity}\r\n[keys]\r\nforward=18,72\r\n'.encode('ascii'))

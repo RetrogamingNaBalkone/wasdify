@@ -102,13 +102,34 @@
             "en": "Game settings through DOS setup and INI"
           },
           "description": {
-            "ru": "Чтение KREMLIN.INI основным EXE: разрешение, чувствительность мыши и по две клавиши на действие. Отдельные русский и английский DOS SETUP.EXE выгружаются через WASDify. Требует явного выбора WASD и исправления 640×400.",
-            "en": "Read KREMLIN.INI in the game EXE: resolution, mouse sensitivity and two keys per action. Export separate Russian and English DOS SETUP.EXE builds through WASDify. Explicitly select WASD and the 640×400 fix."
+            "ru": "Чтение KREMLIN.INI основным EXE: разрешение, чувствительность мыши и по две клавиши на действие. Отдельные русский и английский DOS SETUP.EXE выгружаются через WASDify. Требует явного выбора WASD и исправления 640×400. Нужный DOS SETUP.EXE автоматически устанавливается рядом с EXE игры.",
+            "en": "Read KREMLIN.INI in the game EXE: resolution, mouse sensitivity and two keys per action. Export separate Russian and English DOS SETUP.EXE builds through WASDify. Explicitly select WASD and the 640×400 fix. The matching DOS SETUP.EXE is installed automatically beside the game executable."
           },
-          "roles": ["main"],
-          "dependencies": ["wasd", "resolution-640x400"],
+          "roles": [
+            "main"
+          ],
+          "dependencies": [
+            "wasd",
+            "resolution-640x400"
+          ],
           "conflicts": [],
-          "implemented": true
+          "implemented": true,
+          "files": [
+            {
+              "source": "dungeons-of-kremlin/en/SETUP.EXE",
+              "language": "en",
+              "role": "main",
+              "destination": "SETUP.EXE",
+              "sha256": "b7493216b1408c46e432717bb0fec1900edc452b9d8445a4e42b48fbebb8d5a8"
+            },
+            {
+              "source": "dungeons-of-kremlin/ru/SETUP.EXE",
+              "language": "ru",
+              "role": "main",
+              "destination": "SETUP.EXE",
+              "sha256": "29fac924b19bd2e6461cefd65694e3c82d31ebb94d5cbdeacb4e9716208291ac"
+            }
+          ]
         },
         {
           "id": "font-scaling",

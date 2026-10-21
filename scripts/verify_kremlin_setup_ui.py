@@ -51,7 +51,11 @@ def preview(api, lang, path):
 def trial(lang, work):
     game = work / lang
     game.mkdir()
-    Service().export_setup(game, lang)
+    service = Service()
+    from wasdify.resources import read_resource
+    declaration = next(f for p in service.list_patches('dungeons-of-kremlin')
+                       if p.id == 'game-settings' for f in p.files if f.language == lang)
+    (game/'SETUP.EXE').write_bytes(read_resource(declaration.source, declaration.sha256))
     port = 8137
     api = Api(port)
     try:

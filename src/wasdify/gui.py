@@ -6,7 +6,7 @@ import tkinter as tk
 from tkinter import filedialog, ttk
 
 from .i18n import Translator
-from .models import ApplyResult, Detection, Issue, Plan, SetupExportResult, WasdifyError
+from .models import ApplyResult, Detection, Issue, Plan, WasdifyError
 from .presentation import apply_text, detection_text, plan_text
 from .service import Service
 
@@ -20,15 +20,13 @@ class Application:
         self.path = tk.StringVar(root)
         self.backup = tk.BooleanVar(root, True)
         self.language = tk.StringVar(root, self.tr.language)
-        self.setup_language = tk.StringVar(root, "ru")
-        self.setup_language_chosen = False
         self.game_choice = tk.StringVar(root)
         self.manual_game_id: str | None = None
         self.detected_game_id: str | None = None
         self.patch_vars: dict[str, tk.BooleanVar] = {}
         self.patch_game_id: str | None = None
         self.plan: Plan | None = None
-        self.last_result: Detection | Plan | ApplyResult | SetupExportResult | Issue | None = None
+        self.last_result: Detection | Plan | ApplyResult | Issue | None = None
         self.busy = False
         self.queue: Queue = Queue()
         self.root.title("WASDify")
@@ -115,14 +113,6 @@ class Application:
         self.check_button.grid(row=0, column=1, padx=8)
         self.apply_button = ttk.Button(actions, text=tr("apply"), command=self.apply)
         self.apply_button.grid(row=0, column=2)
-        ttk.Label(actions, text=tr("setup_language_label")).grid(row=1, column=0, sticky="w", pady=(8,0))
-        setup_box = register(ttk.Combobox(actions, textvariable=self.setup_language,
-                                         values=("ru", "en"), width=5, state="readonly"), "readonly")
-        setup_box.grid(row=1, column=1, padx=8, pady=(8,0))
-        setup_box.bind("<<ComboboxSelected>>", lambda event: setattr(self, "setup_language_chosen", True))
-        register(ttk.Button(actions, text=tr("setup_export_button"), command=self.export_setup)).grid(
-            row=1, column=2, pady=(8,0))
-
         results = ttk.LabelFrame(frame, text=tr("result"), padding=8)
         results.grid(row=5, column=0, columnspan=3, sticky="nsew")
         results.rowconfigure(0, weight=1)
@@ -175,8 +165,6 @@ class Application:
             text += "\n\n" + self.tr("no_patches" if result.game_id else "unknown_file")
         elif isinstance(result, ApplyResult):
             text = apply_text(result, self.tr)
-        elif isinstance(result, SetupExportResult):
-            text = self.tr("setup_exported", path=str(result.path), language=result.language)
         elif isinstance(result, Issue):
             text = self.tr.issue(result)
         else:
@@ -220,13 +208,10 @@ class Application:
             return
         self.busy = False
         self.last_result = result
-        if not isinstance(result, SetupExportResult):
-            self.plan = result if isinstance(result, Plan) and result.ready else None
+        self.plan = result if isinstance(result, Plan) and result.ready else None
         detection = result.detection if isinstance(result, Plan) else result
         if isinstance(detection, Detection):
             self.detected_game_id = detection.game_id
-            if detection.language and not self.setup_language_chosen:
-                self.setup_language.set(detection.language)
         self._build()
 
     def check(self) -> None:
@@ -252,14 +237,6 @@ class Application:
         plan, backup = self.plan, self.backup.get()
         self.plan = None
         self._start(lambda: self.service.apply(plan, backup=backup))
-
-    def export_setup(self) -> None:
-        if self.busy:
-            return
-        directory = filedialog.askdirectory(parent=self.root, title=self.tr("setup_directory_help"))
-        if directory:
-            language = self.setup_language.get()
-            self._start(lambda: self.service.export_setup(directory, language))
 
     def close(self) -> None:
         # Do not destroy Tk while a file transaction is still running.

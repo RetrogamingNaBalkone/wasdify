@@ -1,6 +1,7 @@
 """Build one standalone Windows GUI/CLI executable and check its resources."""
 import json
 import os
+import shutil
 from pathlib import Path
 import subprocess
 import struct
@@ -27,7 +28,10 @@ def main() -> int:
     # environment, independently of Analysis.pathex. Always bundle this checkout.
     package = root / "src" / "wasdify"
     for directory in ("data", "locales"):
-        common.extend(["--add-data", str(package / directory)+os.pathsep+"wasdify/"+directory])
+        for resource in sorted((package / directory).glob("*.json")):
+            common.extend(["--add-data", str(resource)+os.pathsep+"wasdify/"+directory])
+    dist.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(package / "data/WASDify.pak", dist / "WASDify.pak")
     for pattern in ("*.asm", "*.inc"):
         for source in sorted((package / "patches").glob(pattern)):
             common.extend(["--add-data", str(source)+os.pathsep+"wasdify/patches"])
@@ -51,6 +55,9 @@ def main() -> int:
         if struct.unpack("<H", executable.read(2))[0] != 2:
             raise RuntimeError("The executable must use the Windows GUI subsystem")
     expected = json.loads((root / "src" / "wasdify" / "data" / "games.json").read_text("utf-8"))
+    for game in expected["games"]:
+        for definition in game["patches"]:
+            definition.setdefault("files", [])
     for language in ("ru", "en"):
         for game in expected["games"]:
             completed = subprocess.run(
@@ -61,12 +68,25 @@ def main() -> int:
                 raise RuntimeError("Unexpected game catalog in the executable")
         setup_directory = smoke / ("dos-setup-"+language)
         setup_directory.mkdir(exist_ok=True)
-        subprocess.run([str(cli), "setup", str(setup_directory), "--setup-lang", language,
-                        "--overwrite", "--json"], cwd=smoke, env=environment,
-                       check=True, capture_output=True, text=True, timeout=60)
-        payloads = json.loads((package / "data/kremlin_settings.json").read_text("ascii"))
-        if (setup_directory / "SETUP.EXE").read_bytes() != bytes.fromhex(payloads["setup"][language]):
-            raise RuntimeError("Unexpected DOS setup payload in the executable")
+        # Exercise the complete installation with synthetic NE bytes, never game originals.
+        sys.path.insert(0, str(root / "src"))
+        sys.path.insert(0, str(root))
+        from tests.test_kremlin_settings import executable, SELECTION
+        from wasdify.resources import read_resource
+        from wasdify.service import Service
+        target = setup_directory / "renamed.exe"
+        target.write_bytes(executable(language))
+        arguments = [arg for patch_id in SELECTION for arg in ("--patch", patch_id)]
+        subprocess.run([str(cli), "apply", str(target), *arguments, "--json"],
+                       cwd=smoke, env=environment, check=True, capture_output=True, text=True, timeout=60)
+        declaration = next(f for p in Service().list_patches("dungeons-of-kremlin")
+                           if p.id == "game-settings" for f in p.files if f.language == language)
+        if (setup_directory / "SETUP.EXE").read_bytes() != read_resource(declaration.source, declaration.sha256):
+            raise RuntimeError("Unexpected DOS setup payload in companion PAK")
+        repeated = subprocess.run([str(cli), "apply", str(target), *arguments, "--json"],
+                                  cwd=smoke, env=environment, check=True, capture_output=True, text=True, timeout=60)
+        if json.loads(repeated.stdout)["result"]["status"] != "no_changes":
+            raise RuntimeError("Repeated application must preserve the complete file set")
     version = subprocess.run([str(cli), "--version"], cwd=smoke, env=environment,
                              check=True, capture_output=True, text=True, timeout=60)
     if not version.stdout.startswith("WASDify "):
@@ -83,6 +103,7 @@ def main() -> int:
     (dist / "wasdify-cli.exe").unlink(missing_ok=True)
     print("\nBuild and smoke checks passed:", flush=True)
     print(cli, flush=True)
+    print(dist / "WASDify.pak", flush=True)
     return 0
 
 

@@ -151,26 +151,33 @@ class SettingsTests(unittest.TestCase):
                 b[main.end:main.end+len(table)]=table
             with self.subTest(kind=kind),self.assertRaises(WasdifyError):settings._install(bytes(b))
 
-    def test_dos_language_builds_are_distinct_and_service_is_explicit(self):
-        with temporary_directory() as directory:
-            service=Service()
-            ru=service.export_setup(directory,'ru');raw=ru.path.read_bytes()
-            self.assertEqual(raw[:2],b'MZ')
-            self.assertIn(messages('ru')['dos_title'].replace('ё','е').replace('Ё','Е').encode('cp866'),raw)
-            self.assertEqual(service.export_setup(directory,'ru').status,'no_changes')
-            with self.assertRaises(WasdifyError):service.export_setup(directory,'en')
-            en=service.export_setup(directory,'en',overwrite=True)
-            self.assertEqual(en.backup.read_bytes(),raw)
-            self.assertIn(b'Dungeons of Kremlin setup',en.path.read_bytes())
-            with self.assertRaises(WasdifyError):service.export_setup(directory,'fr')
-            self.assertFalse((Path(directory)/'KREMLIN.INI').exists())
+    def test_dos_language_builds_automatically_follow_executable(self):
+        for lang in ('ru', 'en'):
+            with self.subTest(lang=lang), temporary_directory() as directory:
+                path=Path(directory)/'renamed.exe';path.write_bytes(executable(lang))
+                service=Service(); plan=service.plan({'main':path},SELECTION)
+                self.assertTrue(plan.ready, plan.issues)
+                self.assertEqual(plan.files[0].action, 'create')
+                result=service.apply(plan)
+                raw=(path.parent/'SETUP.EXE').read_bytes()
+                self.assertEqual(raw[:2],b'MZ')
+                self.assertIn(messages(lang)['dos_title'].replace('\u0451','\u0435').replace('\u0401','\u0415').encode('cp866'),raw)
+                self.assertEqual(result.files[0].status,'applied')
+                self.assertEqual(service.apply(service.plan({'main':path},SELECTION)).status,'no_changes')
+                (path.parent/'SETUP.EXE').unlink()
+                restored=service.apply(service.plan({'main':path},SELECTION),backup=False)
+                self.assertEqual(restored.status,'applied')
+                self.assertEqual((path.parent/'SETUP.EXE').read_bytes(),raw)
+                self.assertFalse((path.parent/'KREMLIN.INI').exists())
 
     def test_setup_cli_language_independent_of_interface(self):
         with temporary_directory() as directory,redirect_stdout(StringIO()) as out:
-            result=main(['setup',str(directory),'--lang','ru','--setup-lang','en','--json'])
+            path=Path(directory)/'renamed.exe';path.write_bytes(executable('en'))
+            result=main(['apply',str(path),'--lang','ru','--json',
+                         *[arg for p in SELECTION for arg in ('--patch',p)]])
             self.assertEqual(result,0)
-            self.assertEqual(json.loads(out.getvalue())['setup']['language'],'en')
-            self.assertIn(b'Dungeons of Kremlin setup',(Path(directory)/'SETUP.EXE').read_bytes())
+            self.assertEqual(json.loads(out.getvalue())['result']['files'][0]['status'],'applied')
+            self.assertIn(b'Dungeons of Kremlin setup',(path.parent/'SETUP.EXE').read_bytes())
 
     def test_sensitivity_and_catalog_parity(self):
         self.assertEqual(float(sensitivity(7)),0.2)

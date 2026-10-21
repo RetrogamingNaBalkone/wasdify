@@ -2,7 +2,7 @@
 import json
 from importlib.resources import files
 
-from .models import Game, KnownVersion, PatchDefinition, WasdifyError
+from .models import AdditionalFile, Game, KnownVersion, PatchDefinition, WasdifyError
 
 
 class Catalog:
@@ -45,6 +45,7 @@ def load_catalog() -> Catalog:
             id=p["id"], title=p["title"], description=p["description"],
             roles=tuple(p["roles"]), dependencies=tuple(p["dependencies"]),
             conflicts=tuple(p["conflicts"]), implemented=p["implemented"],
+            files=tuple(AdditionalFile(**f) for f in p.get("files", ())),
         ) for p in item["patches"])
         games.append(Game(item["id"], item["title"], tuple(item["roles"]),
                           tuple(KnownVersion(**v) for v in item["versions"]), patches))

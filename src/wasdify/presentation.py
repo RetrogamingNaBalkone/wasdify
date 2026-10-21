@@ -37,6 +37,8 @@ def detection_text(detection: Detection, service: Service, tr: Translator) -> st
 def plan_text(plan: Plan, service: Service, tr: Translator) -> str:
     lines = [detection_text(plan.detection, service, tr), "",
              tr("ready" if plan.ready else "blocked"), tr("changes", count=len(plan.changes))]
+    for item in plan.files:
+        lines.append(tr("resource_"+item.action, path=str(item.path)))
     if plan.already_applied:
         lines.append(tr("already_applied", patches=", ".join(plan.already_applied)))
     lines.extend(tr.issue(issue) for issue in plan.issues)
@@ -45,6 +47,10 @@ def plan_text(plan: Plan, service: Service, tr: Translator) -> str:
 
 def apply_text(result: ApplyResult, tr: Translator) -> str:
     lines = [tr(result.status), tr("sha256") + ": " + result.sha256_after]
+    for item in result.files:
+        lines.append(tr("resource_result", path=str(item.path), status=tr(item.status)))
+        if item.backup:
+            lines.append(tr("backup_saved", path=str(item.backup)))
     if result.backup:
         lines.extend([tr("backup_saved", path=result.backup), tr("backup_manual_restore")])
     return "\n".join(lines)

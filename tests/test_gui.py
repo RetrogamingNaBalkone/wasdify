@@ -56,18 +56,14 @@ class GUITests(unittest.TestCase):
         self.app.path.set(str(self.path))
         self.app.check()
         self.finish()
-        self.assertEqual(self.app.setup_language.get(),'en')
         self.assertEqual(self.app.tr.language,'ru')
         for key in ('wasd','resolution-640x400','game-settings'):
             self.app.patch_vars[key].set(True)
         self.app.check()
         self.finish()
-        original_plan=self.app.plan
-        self.assertIsNotNone(original_plan)
-        with patch('wasdify.gui.filedialog.askdirectory',return_value=str(self.directory)):
-            self.app.export_setup()
+        self.assertIsNotNone(self.app.plan)
+        self.app.apply()
         self.finish()
-        self.assertIs(self.app.plan,original_plan)
         self.assertIn(b'Dungeons of Kremlin setup',(Path(self.directory)/'SETUP.EXE').read_bytes())
 
     def test_browse_detects_then_selection_can_apply(self):

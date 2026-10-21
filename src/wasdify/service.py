@@ -1,14 +1,15 @@
 """Shared application service for CLI and GUI."""
 from pathlib import Path
-import os
+from dataclasses import replace
 from typing import Callable, Mapping
 
 from .catalog import Catalog, load_catalog
 from .engine import build_result, order_patches
-from .models import (ApplyResult, Detection, Issue, Patch, PatchDefinition, Plan, SetupExportResult,
+from .models import (ApplyResult, Detection, Issue, Patch, PatchDefinition, Plan, PlannedFile,
                      WasdifyError)
 from .patches import GAME_PROBES, IMPLEMENTATIONS
-from .storage import read_target, sha256, write_result
+from .storage import read_target, sha256, write_result, write_set
+from .resources import destination, read_resource
 
 
 class Service:
@@ -58,38 +59,6 @@ class Service:
     def list_patches(self, game_id: str) -> tuple[PatchDefinition, ...]:
         return self.catalog.game(game_id).patches
 
-    def export_setup(self, directory: str | Path, language: str,
-                     overwrite: bool = False) -> SetupExportResult:
-        """Export the selected DOS language, independently of the frontend locale."""
-        from .patches.kremlin_settings import resources
-        if language not in ("ru", "en"):
-            raise WasdifyError("setup_language_required")
-        path = Path(directory).absolute() / "SETUP.EXE"
-        payload = bytes.fromhex(resources()["setup"][language])
-        digest = sha256(payload)
-        if path.exists() or path.is_symlink():
-            current = read_target(path)
-            if current == payload:
-                return SetupExportResult("no_changes", path, language, digest)
-            if not overwrite:
-                raise WasdifyError("setup_exists", path=str(path))
-            result = write_result(path, sha256(current), payload, backup=True)
-            return SetupExportResult(result.status, path, language, digest, result.backup)
-        created = False
-        try:
-            with path.open("xb") as output:
-                created = True
-                output.write(payload)
-                output.flush()
-                os.fsync(output.fileno())
-            if read_target(path) != payload:
-                raise OSError("setup verification failed")
-        except OSError as error:
-            if created:
-                path.unlink(missing_ok=True)
-            raise WasdifyError("write_failed", path=str(path)) from error
-        return SetupExportResult("exported", path, language, digest)
-
     def plan(self, targets: Mapping[str, str | Path], selected: tuple[str, ...],
              game_id: str | None = None) -> Plan:
         if len(targets) != 1:
@@ -104,6 +73,7 @@ class Service:
         ordered: tuple[str, ...] = ()
         changes = []
         applied = []
+        additional = []
         if detection.game_id is None:
             issues.append(Issue("unknown_file"))
         else:
@@ -162,7 +132,45 @@ class Service:
                 build_result(data, tuple(changes))
             except WasdifyError as error:
                 issues.append(error.issue)
-        return Plan(paths, detection, chosen, ordered, tuple(changes), tuple(applied), tuple(issues))
+        if detection.game_id and not issues:
+            definitions = {p.id: p for p in self.catalog.game(detection.game_id).patches}
+            destinations = {}
+            for patch_id in ordered:
+                declared = definitions[patch_id].files
+                if any(f.language is not None for f in declared) and detection.language is None:
+                    issues.append(Issue("resource_language_required"))
+                    continue
+                variants = [f for f in declared if f.language is None or f.language == detection.language]
+                if declared and not variants:
+                    issues.append(Issue("resource_language_required"))
+                for item in variants:
+                    try:
+                        if item.role not in paths:
+                            raise WasdifyError("missing_role", role=item.role)
+                        path = destination(paths[item.role], item.destination)
+                        key = str(path).casefold()
+                        if key in {str(p).casefold() for p in paths.values()}:
+                            raise WasdifyError("resource_conflict", path=str(path))
+                        payload = read_resource(item.source, item.sha256)
+                        old = read_target(path) if path.exists() else None
+                        planned = PlannedFile((patch_id,), item.source, path, item.sha256,
+                                              sha256(old) if old is not None else None,
+                                              "no_changes" if old == payload else "create" if old is None else "replace")
+                        if key in destinations:
+                            index = destinations[key]
+                            previous = additional[index]
+                            if previous.sha256 != planned.sha256:
+                                raise WasdifyError("resource_conflict", path=str(path))
+                            additional[index] = replace(previous, patches=previous.patches+(patch_id,))
+                        else:
+                            if any(path in f.path.parents or f.path in path.parents for f in additional):
+                                raise WasdifyError("resource_conflict", path=str(path))
+                            destinations[key] = len(additional)
+                            additional.append(planned)
+                    except WasdifyError as error:
+                        issues.append(error.issue)
+        return Plan(paths, detection, chosen, ordered, tuple(changes), tuple(applied), tuple(issues),
+                    tuple(additional))
 
     def apply(self, plan: Plan, *, backup: bool = True) -> ApplyResult:
         if plan.issues:
@@ -175,8 +183,16 @@ class Service:
             raise WasdifyError("file_changed", path=str(path))
         # Re-analyze instead of trusting externally constructed/stale edit lists.
         fresh = self.plan(plan.targets, plan.selected, plan.detection.game_id)
-        if not fresh.ready or fresh.changes != plan.changes or fresh.ordered != plan.ordered:
+        if (not fresh.ready or fresh.changes != plan.changes or fresh.ordered != plan.ordered
+                or fresh.files != plan.files):
             raise WasdifyError("plan_changed")
         output = build_result({"main": original}, fresh.changes)["main"]
-        return write_result(path, plan.detection.sha256, output, backup=backup)
+        if not fresh.files:
+            return write_result(path, plan.detection.sha256, output, backup=backup)
+        entries = ((path, plan.detection.sha256, output),) + tuple(
+            (f.path, f.sha256_before, read_resource(f.source, f.sha256)) for f in fresh.files)
+        results = write_set(entries, backup=backup)
+        main, *additional = results
+        return ApplyResult("applied" if any(r.status == "applied" for r in results) else "no_changes",
+                           plan.detection.sha256, main.sha256, main.backup, tuple(additional))
 

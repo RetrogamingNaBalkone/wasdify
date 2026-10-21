@@ -25,5 +25,5 @@ wasdify-gui = "wasdify.cli:gui_main"
 where = ["src"]
 
 [tool.setuptools.package-data]
-wasdify = ["data/*.json", "locales/*.json", "patches/*.asm", "patches/*.inc"]
+wasdify = ["data/*.json", "data/*.pak", "locales/*.json", "patches/*.asm", "patches/*.inc"]
 

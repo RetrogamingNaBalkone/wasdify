@@ -297,7 +297,11 @@ def main():
     for lang in ('ru','en'):
         code=bytes.fromhex(result['runtime'][lang])
         total+=parser_checks(code)+runtime_checks(lang,code)
-        exe=bytes.fromhex(result['setup'][lang]);paras=struct.unpack_from('<H',exe,8)[0]
+        from wasdify.service import Service
+        from wasdify.resources import read_resource
+        declaration = next(f for p in Service().list_patches('dungeons-of-kremlin')
+                           if p.id == 'game-settings' for f in p.files if f.language == lang)
+        exe=read_resource(declaration.source, declaration.sha256);paras=struct.unpack_from('<H',exe,8)[0]
         image=exe[paras*16:]
         code_size=struct.unpack_from('<H',exe,14)[0]*16
         total+=parser_checks(image[:code_size])

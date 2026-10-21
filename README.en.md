@@ -28,10 +28,9 @@ the [game documentation](docs/games/dungeons-of-kremlin/README.md) (Russian).
 
 [DOS game settings](docs/games/dungeons-of-kremlin/settings.md) for Dungeons of
 Kremlin are available through `game-settings`; explicitly select `wasd` and
-`resolution-640x400` as well. Export the matching language using
-`wasdify setup C:\Games\Kremlin\ENG --setup-lang en` or
-`wasdify setup C:\Games\Kremlin\RUS --setup-lang ru`. The game EXE reads
-KREMLIN.INI directly; the DOS setup language is independent of the WASDify UI.
+`resolution-640x400` as well. Applying `game-settings` automatically installs
+SETUP.EXE beside the game EXE. Its language is detected from the game executable,
+independently of the WASDify UI. The game reads KREMLIN.INI directly.
 
 Requires **Python 3.11+**, with Tcl/Tk for the GUI. Windows is the primary tested
 platform. Raising the minimum Python version requires a technical justification
@@ -57,7 +56,7 @@ From the repository root:
 .\build.ps1
 ```
 
-The output is one standalone **`dist\WASDify.exe`**, requiring no installed Python:
+The output is **`dist\WASDify.exe`** with **`dist\WASDify.pak`**, requiring no installed Python:
 
 - Double-click or run without arguments to open the GUI without creating a console window.
 - Commands run the CLI: `.\dist\WASDify.exe --lang en games`. Terminal output,
@@ -67,7 +66,7 @@ The output is one standalone **`dist\WASDify.exe`**, requiring no installed Pyth
 In interactive PowerShell, use a pipeline to wait for the CLI and read
 `$LASTEXITCODE`: `.\dist\WASDify.exe --lang en games | Out-Host`.
 
-The EXE can be moved elsewhere. Game metadata, translations and Tcl/Tk are
+Move the EXE together with `WASDify.pak`, keeping both in the same directory. Game metadata, translations and Tcl/Tk are
 bundled; `originals/` and `mqa/` are not included.
 
 Building requires Windows, Python 3.11+ with Tcl/Tk, and internet access for the

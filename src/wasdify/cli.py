@@ -43,17 +43,12 @@ def build_parser(tr: Translator) -> argparse.ArgumentParser:
     common(root)
     root.add_argument("--version", action="version", version="WASDify " + __version__, help=tr("version_help"))
     sub = root.add_subparsers(dest="command", required=True, title=tr("commands"), metavar="COMMAND")
-    for command in ("games", "detect", "patches", "plan", "apply", "setup", "gui"):
+    for command in ("games", "detect", "patches", "plan", "apply", "gui"):
         parser = sub.add_parser(command, help=tr(command + "_help"),
                                 description=tr(command + "_help"), add_help=False,
                                 allow_abbrev=False, formatter_class=LocalFormatter)
         configure(parser)
         common(parser)
-        if command == "setup":
-            parser.add_argument("directory", metavar="DIRECTORY", help=tr("setup_directory_help"))
-            parser.add_argument("--setup-lang", choices=("ru", "en"), required=True,
-                                help=tr("setup_language_help"))
-            parser.add_argument("--overwrite", action="store_true", help=tr("setup_overwrite_help"))
         if command in ("detect", "plan", "apply"):
             parser.add_argument("path", metavar="PATH", help=tr("path_help"))
         if command in ("detect", "patches", "plan", "apply"):
@@ -97,10 +92,7 @@ def main(argv: list[str] | None = None) -> int:
                 raise WasdifyError("gui_unavailable") from error
             return gui_main(language=tr.language)
         service = Service()
-        if args.command == "setup":
-            result = service.export_setup(args.directory, args.setup_lang, args.overwrite)
-            emit({"setup": result}, tr("setup_exported", path=str(result.path), language=result.language))
-        elif args.command == "games":
+        if args.command == "games":
             data = [{"id": game.id, "title": game.title[tr.language]} for game in service.catalog.games]
             emit({"games": data}, "\n".join(item["id"] + " — " + item["title"] for item in data))
         elif args.command == "patches":

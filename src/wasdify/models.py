@@ -1,4 +1,5 @@
 """UI-independent public contracts. All offsets are file offsets."""
+from __future__ import annotations
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Mapping, Protocol
@@ -26,6 +27,15 @@ class KnownVersion:
 
 
 @dataclass(frozen=True)
+class AdditionalFile:
+    source: str
+    language: str | None
+    role: str
+    destination: str
+    sha256: str
+
+
+@dataclass(frozen=True)
 class PatchDefinition:
     id: str
     title: Mapping[str, str]
@@ -34,6 +44,7 @@ class PatchDefinition:
     dependencies: tuple[str, ...] = ()
     conflicts: tuple[str, ...] = ()
     implemented: bool = False
+    files: tuple[AdditionalFile, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -77,6 +88,16 @@ class Patch(Protocol):
 
 
 @dataclass(frozen=True)
+class PlannedFile:
+    patches: tuple[str, ...]
+    source: str
+    path: Path
+    sha256: str
+    sha256_before: str | None
+    action: str
+
+
+@dataclass(frozen=True)
 class Plan:
     targets: Mapping[str, Path]
     detection: Detection
@@ -85,6 +106,7 @@ class Plan:
     changes: tuple[Change, ...] = ()
     already_applied: tuple[str, ...] = ()
     issues: tuple[Issue, ...] = ()
+    files: tuple[PlannedFile, ...] = ()
 
     @property
     def ready(self) -> bool:
@@ -97,19 +119,19 @@ class ApplyResult:
     sha256_before: str
     sha256_after: str
     backup: Path | None = None
+    files: tuple[FileResult, ...] = ()
 
 
 @dataclass(frozen=True)
-class SetupExportResult:
+class FileResult:
     status: str
     path: Path
-    language: str
     sha256: str
     backup: Path | None = None
 
 
 def exit_code(issues: tuple[Issue, ...]) -> int:
-    if any(issue.code in {"io_error", "backup_failed", "write_failed", "gui_unavailable"}
+    if any(issue.code in {"io_error", "backup_failed", "write_failed", "rollback_failed", "gui_unavailable"}
            for issue in issues):
         return 4
     if any(issue.code == "not_implemented" for issue in issues):
