@@ -91,7 +91,7 @@
   "setup_exported": "DOS setup ({language}): {path}. Run SETUP.EXE in DOS to edit KREMLIN.INI.",
   "setup_language_required": "Choose the DOS setup language: ru or en.",
   "setup_exists": "A different SETUP.EXE already exists: {path}. Use --overwrite to replace it with a backup.",
-  "dos_title": "WASDify: Dungeons of Kremlin setup",
+  "dos_title": "Dungeons of Kremlin setup",
   "dos_help": "Arrows: select/change  Enter: open  Esc: back  Del: clear binding",
   "dos_capture": "Press a key. Esc: cancel.",
   "dos_slot": "Editing slot: ",

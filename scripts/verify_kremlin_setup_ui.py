@@ -14,6 +14,7 @@ from kremlin_setup_font import glyphs
 from profile_kremlin import Api, ROOT
 from verify_kremlin_settings_dosbox import bios_key, text, wait_for
 from wasdify.service import Service
+from wasdify.i18n import messages
 
 
 def preview(api, lang, path):
@@ -80,13 +81,15 @@ SETUP.EXE
                                    env=dict(os.environ, SDL_VIDEODRIVER='dummy', SDL_AUDIODRIVER='dummy'),
                                    creationflags=subprocess.CREATE_NO_WINDOW)
         try:
-            wait_for(lambda: 'WASDify' in text(api))
+            title = messages(lang)['dos_title'].replace('ё', 'е').replace('Ё', 'Е')
+            wait_for(lambda: title in text(api))
             def check_selection(row):
                 raw = api.get('memory/0xb8000/4000')
                 for y in range(3, 22):
                     attrs = raw[y * 160 + 5:y * 160 + 157:2]
                     assert attrs == bytes([0x1f if y == row else 7]) * 76, (lang, row, y, attrs)
-                assert 'WASDify' in text(api).splitlines()[1]
+                assert title in text(api).splitlines()[1]
+                assert 'wasdify' not in text(api).lower()
             check_selection(3)
             preview(api, lang, work / f'{lang}-main.png')
             bios_key(api, 0x50)

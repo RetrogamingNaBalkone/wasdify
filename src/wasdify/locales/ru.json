@@ -91,7 +91,7 @@
   "setup_exported": "DOS setup ({language}): {path}. Запустите SETUP.EXE в DOS для изменения KREMLIN.INI.",
   "setup_language_required": "Выберите язык DOS setup: ru или en.",
   "setup_exists": "Другой SETUP.EXE уже существует: {path}. Для замены с резервной копией укажите --overwrite.",
-  "dos_title": "WASDify: настройки Подземелий Кремля",
+  "dos_title": "Настройки Подземелий Кремля",
   "dos_help": "Стрелки: выбор/изменение  Enter: открыть  Esc: назад  Del: убрать клавишу",
   "dos_capture": "Нажмите клавишу. Esc: отмена.",
   "dos_slot": "Редактируемый слот: ",
