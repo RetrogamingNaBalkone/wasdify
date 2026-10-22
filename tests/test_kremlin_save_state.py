@@ -72,6 +72,40 @@ class NativeMemory:
 
 
 class WorldStateTests(unittest.TestCase):
+    def test_reused_projectile_slot_is_an_instance_even_when_allocator_reuses_address(self):
+        native = NativeMemory()
+        # Slot 2 was already occupied at resource binding, then the native
+        # allocator destroyed and reused that allocation. Pointer equality is
+        # insufficient to classify this active shot as a resource definition.
+        native.resources = replace(native.resources,
+            baseline={**native.resources.baseline, 2: native.objects[2]})
+        snapshot = native.capture()
+        shot = next(item for item in snapshot["objects"] if item["id"] == 2)
+        self.assertEqual(shot["template"], 50)
+        self.assertIn("x", shot["fields"])
+        self.assertEqual(state.construction_plan(snapshot, native.resources), ((2,), ((2, 50),)))
+        native.plan(snapshot)
+        del native.objects[2]
+        absent = native.capture()
+        self.assertEqual(state.construction_plan(absent, native.resources), ((2,), ()))
+
+    def test_construction_inventory_rejects_cycles_missing_templates_and_static_removal(self):
+        native = NativeMemory()
+        snapshot = native.capture()
+        state.construction_plan(snapshot, native.resources)
+        missing = copy.deepcopy(snapshot)
+        missing["objects"] = [r for r in missing["objects"] if r["id"] != 1]
+        with self.assertRaisesRegex(SaveFormatError, "snapshot_baseline_missing"):
+            state.construction_plan(missing, native.resources)
+        cyclic = copy.deepcopy(snapshot)
+        next(r for r in cyclic["objects"] if r["id"] == 50)["template"] = 50
+        with self.assertRaisesRegex(SaveFormatError, "projectile_template_lifetime"):
+            state.construction_plan(cyclic, native.resources)
+        unavailable = copy.deepcopy(snapshot)
+        unavailable["objects"] = [r for r in unavailable["objects"] if r["id"] != 50]
+        with self.assertRaisesRegex(SaveFormatError, "projectile_template_lifetime"):
+            state.construction_plan(unavailable, native.resources)
+
     def test_hud_restores_values_clears_keys_and_marks_native_redraw(self):
         native = NativeMemory()
         snapshot = native.capture()
@@ -173,8 +207,43 @@ class WorldStateTests(unittest.TestCase):
         self.assertNotIn("burst_count", record["fields"])
         native.plan(snapshot)
         native.write(actor.address + 0xa2, struct.pack("<h", 1))
-        with self.assertRaisesRegex(SaveFormatError, "unsupported_unplaced_actor"):
-            native.capture()
+        # Activation must no longer silently discard the now-live position.
+        with self.assertRaisesRegex(SaveFormatError, "coordinates"):
+            native.plan(native.capture())
+        for name, value in {"x": 1200, "y": -40, "z": 2400, "heading": 90,
+                            "burst_count": 2, "stride_count": 3}.items():
+            offset, wire = state.AI[name]
+            native.write(actor.address + offset, struct.pack("<" + wire, value))
+        snapshot = native.capture()
+        record = next(item for item in snapshot["objects"] if item["id"] == 3)
+        self.assertEqual(record["fields"]["burst_count"], 2)
+        native.write(actor.address + 0x26, struct.pack("<i", 5000))
+        native.apply(native.plan(snapshot))
+        self.assertEqual(native.capture(100000), snapshot)
+
+    def test_floor_effect_phase_survives_resource_rebinding(self):
+        old, fresh = NativeMemory(), NativeMemory(0x2000)
+        for native in (old, fresh):
+            obj = native.objects[33]
+            native.objects[33] = replace(obj, native_type=12)
+            native.resources = replace(native.resources,
+                baseline={**native.resources.baseline, 33: native.objects[33]})
+        old.write(old.objects[33].address + 0x50, struct.pack("<hh", 7, 150))
+        snapshot = old.capture()
+        fresh.apply(fresh.plan(snapshot))
+        self.assertEqual(fresh.capture(100000), snapshot)
+        legacy = copy.deepcopy(snapshot)
+        record = next(item for item in legacy["objects"] if item["id"] == 33)
+        del record["fields"]["frame"], record["fields"]["frame_interval"]
+        normalized = state.with_floor_defaults(legacy)
+        self.assertNotIn("frame", record["fields"])
+        fresh.apply(fresh.plan(normalized))
+        self.assertEqual(fresh.read(fresh.objects[33].address + 0x50, 4), struct.pack("<hh", 18, 0))
+        for name, value in (("frame", 19), ("frame", -1), ("frame_interval", -1)):
+            invalid = copy.deepcopy(snapshot)
+            next(item for item in invalid["objects"] if item["id"] == 33)["fields"][name] = value
+            with self.assertRaisesRegex(SaveFormatError, "floor_effect"):
+                fresh.plan(invalid)
 
 
 if __name__ == "__main__":

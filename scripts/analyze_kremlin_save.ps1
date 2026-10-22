@@ -2,7 +2,7 @@ param(
     [ValidateSet('ru', 'en')][string]$Language = 'ru',
     [string]$GhidraHome = 'C:/Users/dspev/AppData/Local/Programs/Ghidra/ghidra_12.1.2_PUBLIC',
     [string]$JavaHome = 'C:/Users/dspev/AppData/Local/Programs/Ghidra/java/jdk-21.0.12.1+1',
-    [ValidateSet('continuation', 'state', 'live')][string]$Scope = 'continuation'
+    [ValidateSet('continuation', 'state', 'live', 'gaps')][string]$Scope = 'continuation'
 )
 # Development only. Import into an ignored, disposable project; never save a
 # program or write to the existing research projects or reference executables.
@@ -27,7 +27,7 @@ if ($Scope -eq 'live') {
     if ($Language -ne 'ru') { throw 'Live reload currently targets RUS only' }
     $taskProfile.Addresses = '1008:0719,1008:02f7,1008:0545,1008:069c,1068:193e,1098:0000,1098:004f,1098:02a7,10c0:155d,10c0:1639,1038:0108,1110:0355,1110:037a,1110:0524'
 }
-if ($Scope -eq 'state') {
+if ($Scope -in @('state', 'gaps')) {
     if ($Language -ne 'ru') { throw 'The state inventory currently targets RUS only' }
     # Address inventory is evidence from the same hashed RUS sample. Export the
     # current read-only import, not the old decompiler text or project database.
@@ -39,6 +39,17 @@ if ($Scope -eq 'state') {
         '1038:0108', '1038:0214', '1038:0265', '1038:0284', '10a8:0065', '10a8:00b7',
         '10f8:0000', '10f8:0592', '10f8:05c9',
         '1130:01f5', '1130:0239', '1130:026f', '1130:02b6')) -join ','
+    if ($Scope -eq 'gaps') {
+        $taskExtra = @(Get-Content -LiteralPath $taskListing | ForEach-Object {
+            if ($_ -match '^FUNCTION ((1000|1048|10c8):[0-9a-f]{4}) ') { $Matches[1] }
+            if ($_ -match '^(1050|1068|1098):.*CALLF 0x(1000:[0-9a-f]{4})') { $Matches[2] }
+        })
+        # Calls from 1050's resource parsers discovered by the fresh state
+        # import; these formatter wrappers are absent from the older listing.
+        $taskExtra += @('1000:383c', '1000:386e')
+        $taskProfile.Addresses = (($taskProfile.Addresses.Split(',') + $taskExtra) |
+            Sort-Object -Unique) -join ','
+    }
 }
 $taskStem = "$Scope-$Language"
 $taskFile = Join-Path "$taskRoot/originals/games/pkr" $taskProfile.File

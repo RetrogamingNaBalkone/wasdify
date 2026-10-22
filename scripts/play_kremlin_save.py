@@ -99,6 +99,7 @@ def _decode(raw):
     if payload["revision"] != REVISION:
         raise ValueError("snapshot_revision")
     payload["state"]["maps"] = [bytes.fromhex(layer) for layer in payload["state"]["maps"]]
+    payload["state"] = state_adapter.with_floor_defaults(payload["state"])
     return payload
 
 
@@ -241,6 +242,10 @@ class Session:
         if world_address(memory, queue) != (self.ds, self.world):
             raise ValueError("prototype_world_changed")
         for key, baseline in self.resources.baseline.items():
+            if baseline.native_type == 8:
+                if key in objects and objects[key].native_type != 8:
+                    raise ValueError("prototype_baseline_object_changed")
+                continue
             if key not in objects or objects[key].pointer != baseline.pointer or objects[key].native_type != baseline.native_type:
                 raise ValueError("prototype_baseline_object_changed")
 
@@ -264,15 +269,14 @@ class Session:
 
     def validate_packet(self, packet, memory):
         records = packet["state"]["objects"]
-        if not set(self.resources.baseline) <= {record["id"] for record in records}:
-            raise ValueError("snapshot_baseline_missing")
+        state_adapter.construction_plan(packet["state"], self.resources)
         proposed = {}
         for record in records:
             key, template = record["id"], record["template"]
-            if key in self.resources.baseline:
-                proposed[key] = self.resources.baseline[key]
-            elif record["type"] == 8 and template in self.resources.baseline:
+            if record["type"] == 8 and template in self.resources.baseline:
                 proposed[key] = replace(self.resources.baseline[template], object_id=key)
+            elif key in self.resources.baseline:
+                proposed[key] = self.resources.baseline[key]
             else:
                 raise ValueError("snapshot_native_construction_unsupported")
         state_adapter.plan_restore(packet["state"], memory.read, proposed, self.resources,
@@ -281,6 +285,11 @@ class Session:
                        item["event_version"], {int(key): value for key, value in item["fields"].items()})
                        for item in packet["events"])
         event_adapter.validate(events, proposed)
+        dormant = {r["id"] for r in records if r["type"] == 9
+                   and self.resources.placed_actors is not None
+                   and r["id"] not in self.resources.placed_actors and r["fields"]["ai_state"] == 0}
+        if any(event.owner_id in dormant for event in events):
+            raise ValueError("inactive_unplaced_actor_events")
         by_id = {}
         for key, obj in self.resources.baseline.items():
             if obj.native_type == 7:
@@ -448,6 +457,7 @@ class Session:
                                           memory.u32(self.transport + 52))
             state_adapter.plan_restore(state, memory.read, objects, self.resources, self.ds, self.world,
                                        memory.u32(self.transport + 52))
+            state_adapter.construction_plan(state, self.resources)
             events = event_adapter.capture(memory.read, objects, queue, callbacks, now)
             packet = {"revision": REVISION, "resources": self.manifest,
                       "next_attempt": memory.u16(self.ds + 0x1fae),
@@ -504,12 +514,16 @@ class Session:
             records = packet["state"]["objects"]
             wall = memory.u32(self.transport + 52)
             events, restored_doors = self.validate_packet(packet, memory)
-            for record in records:
-                if record["template"]:
-                    context["mutating"] = True
-                    error, _ = native_call(self.api, self.transport, 1, record["template"] - 1, record["id"] - 1)
-                    if error:
-                        raise RuntimeError(f"native_construction_failed_{error}")
+            remove, clones = state_adapter.construction_plan(packet["state"], self.resources)
+            for key in remove:
+                context["mutating"] = True
+                if native_call(self.api, self.transport, 2, 0, key - 1)[0]:
+                    raise RuntimeError("native_removal_failed")
+            for key, template in clones:
+                context["mutating"] = True
+                error, _ = native_call(self.api, self.transport, 1, template - 1, key - 1)
+                if error:
+                    raise RuntimeError(f"native_construction_failed_{error}")
             current = Memory(self.api.get("memory/0/0x2000000"), memory.ldt)
             objects.clear()
             objects.update(frame_objects(current, self.world))

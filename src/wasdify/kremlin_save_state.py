@@ -61,7 +61,9 @@ FIELDS = {
     6: {"switch_a": (0x54, "h"), "switch_b": (0x56, "h"), "switch_c": (0x58, "h")},
     7: {}, 8: PROJECTILE, 9: AI,
     10: {"weapon_state": (0x83, "h"), "weapon_step": (0x85, "h")},
-    12: {}, 13: {},
+    # 1068:06D6/0741/07A1: the floor effect has no animation resource,
+    # but its crop phase and scheduled frame interval are mutable.
+    12: {"frame": (0x50, "h"), "frame_interval": (0x52, "h")}, 13: {},
 }
 COMMON = {"flags": (0x15, "H"), "width": (0x17, "h"),
           "height": (0x19, "h"), "marker": (0x1b, "B")}
@@ -70,6 +72,18 @@ ANIMATION = {"animation_x": (0x20, "h"), "animation_y": (0x22, "h"),
 TIMERS = {1: (0x86,), 5: (0x86,), 8: (0x6d,), 9: (0x86, 0xb0)}
 MAP_OFFSETS = (0x608a, 0x718e, 0x8292, 0x9396)
 IMAGE_TRANSFORM_MASK = 0x0cc0  # 10F8:0592/05C9: fractional crop on either axis
+
+
+def with_floor_defaults(state):
+    """Supply the native idle phase missing from earlier prototype files."""
+    if "objects" not in state:
+        return state
+    records = []
+    for record in state["objects"]:
+        if record["type"] == 12 and not {"frame", "frame_interval"} & record["fields"].keys():
+            record = {**record, "fields": {**record["fields"], "frame": 18, "frame_interval": 0}}
+        records.append(record)
+    return {**state, "objects": records}
 
 
 @dataclass(frozen=True)
@@ -136,7 +150,7 @@ def bind_resources(read, pointer_at, objects, *, placed_actors=None):
     return Resources(dict(objects), images, animations, placed_actors)
 
 
-def field_layout(obj, resources):
+def field_layout(obj, resources, *, spawned=False, active=False):
     require(obj.native_type in FIELDS, "unknown_native_class")
     fields = dict(COMMON)
     if obj.native_type == 7:
@@ -147,13 +161,14 @@ def field_layout(obj, resources):
     elif obj.native_type == 8:
         fields.update(ANIMATION)
     fields.update(FIELDS[obj.native_type])
-    if obj.native_type == 8 and obj.object_id in resources.baseline:
+    if obj.native_type == 8 and obj.object_id in resources.baseline and not spawned:
         # Static projectile definitions are templates, not spawned actors.
         # Their position/owner/impact-animation slots have no native initializer
         # and are not read until the clone + launch path supplies those values.
         for name in POSE:
             fields.pop(name, None)
-    if obj.native_type in (1, 5, 9) and resources.placed_actors is not None and obj.object_id not in resources.placed_actors:
+    if (obj.native_type in (1, 5, 9) and resources.placed_actors is not None
+            and obj.object_id not in resources.placed_actors and not active):
         # The resource directory contains unused actor definitions. 1098:0EF7
         # initializes position/bounds only for actors occurring in the wall map;
         # 1068:3747 initializes AI burst/stride counters only on activation.
@@ -162,9 +177,10 @@ def field_layout(obj, resources):
     return fields
 
 
-def capture_fields(read, obj, resources):
+def capture_fields(read, obj, resources, *, spawned=False):
+    active = obj.native_type == 9 and struct.unpack("<h", read(obj.address + 0xa2, 2))[0] != 0
     values = {name: struct.unpack("<" + wire, read(obj.address + offset, struct.calcsize(wire)))[0]
-              for name, (offset, wire) in field_layout(obj, resources).items()}
+              for name, (offset, wire) in field_layout(obj, resources, spawned=spawned, active=active).items()}
     if obj.native_type == 1:
         values["commands"] = 0  # pending human input is not continued after load
     return values
@@ -185,10 +201,16 @@ def object_reference(read, at, objects):
     return matches[0]
 
 
-def projectile_template(read, obj, resources):
+def projectile_template(read, obj, resources, objects):
     signature = tuple(read(obj.address + offset, 4) for offset in (0x48, 0x77, 0x7b))
     matches = [key for key, candidate in resources.baseline.items() if candidate.native_type == 8
-               and signature == tuple(read(candidate.address + offset, 4) for offset in (0x48, 0x77, 0x7b))]
+               and key != obj.object_id and key in objects
+               and objects[key].native_type == 8
+               and objects[key].pointer == candidate.pointer
+               and not struct.unpack("<H", read(candidate.address + 0x15, 2))[0] & 0x1400
+               and signature == tuple(resources.animations[f"{key}/animation/{offset}"].pointer
+                   if f"{key}/animation/{offset}" in resources.animations else bytes(4)
+                   for offset in (0x48, 0x77, 0x7b))]
     require(bool(matches), "unbound_projectile_template")
     return min(matches)
 
@@ -204,15 +226,18 @@ def capture(read, objects, resources, ds, world, wall_ticks):
     for key, obj in sorted(objects.items()):
         baseline = resources.baseline.get(key)
         template = 0
-        if baseline is None or baseline.pointer != obj.pointer:
+        projectile_instance = (obj.native_type == 8 and
+            struct.unpack("<H", read(obj.address + 0x15, 2))[0] & 0x1400)
+        if baseline is None or baseline.pointer != obj.pointer or projectile_instance:
             require(obj.native_type == 8, "unsupported_dynamic_class")
-            template = projectile_template(read, obj, resources)
+            template = projectile_template(read, obj, resources, objects)
         require(baseline is None or template or baseline.native_type == obj.native_type, "native_class_changed")
-        if obj.native_type == 9 and resources.placed_actors is not None and key not in resources.placed_actors:
-            require(struct.unpack("<h", read(obj.address + 0xa2, 2))[0] == 0
-                    and struct.unpack("<H", read(obj.address, 2))[0] == 0, "unsupported_unplaced_actor")
+        if (obj.native_type == 9 and resources.placed_actors is not None
+                and key not in resources.placed_actors
+                and struct.unpack("<h", read(obj.address + 0xa2, 2))[0] == 0):
+            require(struct.unpack("<H", read(obj.address, 2))[0] == 0, "inactive_unplaced_actor_events")
         record = {"id": key, "type": obj.native_type, "template": template,
-                  "fields": capture_fields(read, obj, resources),
+                  "fields": capture_fields(read, obj, resources, spawned=bool(template)),
                   "image": resources.image_key(read(obj.address + 0x44, 4)),
                   "timers": [capture_timer(read, obj.address + offset, wall_ticks)
                              for offset in TIMERS.get(obj.native_type, ())], "refs": {}}
@@ -237,6 +262,37 @@ def capture(read, objects, resources, ds, world, wall_ticks):
             # state and may be zero. Do not persist or interpret those bytes.
             result["image_fractions"][key] = [transform, denominator, numerator] if transform else [0, 1, 0]
     return result
+
+
+def construction_plan(state, resources):
+    """Validate the complete instance inventory before any native deletion."""
+    records = state["objects"]
+    by_id = {record["id"]: record for record in records}
+    require(len(by_id) == len(records), "duplicate_object")
+    require(all(type(key) is int and 1 <= key <= 256 for key in by_id), "state_object_id")
+    remove = []
+    for key, baseline in resources.baseline.items():
+        record = by_id.get(key)
+        if record is None or record["template"]:
+            # Only native projectiles have a confirmed reconstruction/destructor
+            # contract. Never generalize this to doors, actors or game resources.
+            require(baseline.native_type == 8, "snapshot_baseline_missing")
+            remove.append(key)
+        else:
+            require(record["type"] == baseline.native_type, "native_class_changed")
+    clones = []
+    for record in records:
+        key, template = record["id"], record["template"]
+        if template:
+            require(type(template) is int and template in resources.baseline
+                    and resources.baseline[template].native_type == 8 and record["type"] == 8,
+                    "projectile_template")
+            require(template in by_id and not by_id[template]["template"] and template not in remove,
+                    "projectile_template_lifetime")
+            clones.append((key, template))
+        else:
+            require(key in resources.baseline, "projectile_template")
+    return tuple(remove), tuple(clones)
 
 
 def plan_restore(state, read, objects, resources, ds, world, wall_ticks):
@@ -276,15 +332,21 @@ def plan_restore(state, read, objects, resources, ds, world, wall_ticks):
             keys.add("impact_animation")
         require(set(record) == keys, "state_record_fields")
         require(not record["template"] or (obj.native_type == 8
-                and record["id"] not in resources.baseline
                 and record["template"] in resources.baseline
                 and resources.baseline[record["template"]].native_type == 8), "projectile_template")
         require(record["type"] == obj.native_type, "native_class_changed")
-        layout = field_layout(obj, resources)
-        require(set(record["fields"]) == set(layout), "state_fields")
         values = record["fields"]
-        if obj.native_type == 9 and resources.placed_actors is not None and obj.object_id not in resources.placed_actors:
-            require(values["ai_state"] == 0, "unsupported_unplaced_actor")
+        layout = field_layout(obj, resources, spawned=bool(record["template"]),
+                              active=obj.native_type == 9 and values.get("ai_state", 0) != 0)
+        # Earlier prototype files did not record the floor-effect phase.
+        # Their documented fallback is the native constructor's idle phase.
+        if obj.native_type == 12 and set(values) == set(layout) - {"frame", "frame_interval"}:
+            values = {**values, "frame": 18, "frame_interval": 0}
+        require(set(values) == set(layout), "state_fields")
+        if obj.native_type == 9:
+            require(values["ai_state"] in range(5), "ai_state")
+        if obj.native_type == 12:
+            require(0 <= values["frame"] <= 18 and values["frame_interval"] >= 0, "floor_effect")
         if "heading" in values:
             require(0 <= values["heading"] < 360, "heading")
             if not (0 <= values["x"] < 64 * 480 and 0 <= values["z"] < 64 * 480):
