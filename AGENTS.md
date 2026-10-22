@@ -14,6 +14,8 @@
   ambiguous match or manual game choice as proof of patch compatibility.
 - Stub patches stay explicitly unimplemented. Never write demonstration bytes
   to real game executables or report simulated success as a successful patch.
+- Use Ghidra to analyze original applications, including disassembly and
+  decompilation of their executables.
 - Analyze the whole selection before writing. Dependencies are explicit user
   choices. Validate conflicts, cycles, ranges and overlaps. Keep backups on by
   default; revalidate before replacement. File offsets are not memory addresses.

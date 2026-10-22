@@ -1,0 +1,30 @@
+{
+  "ru": {
+    "cleared": "",
+    "choice_title": "ВЫБЕРИТЕ ДЕЙСТВИЕ",
+    "choice_start": "НАЧАТЬ УРОВЕНЬ С НАЧАЛА",
+    "choice_load": "ЗАГРУЗИТЬ СОХРАНЕНИЕ",
+    "choice_hint": "СТРЕЛКИ - ВЫБОР, ENTER - ПОДТВЕРДИТЬ",
+    "saving": "ИГРА СОХРАНЯЕТСЯ...",
+    "loading": "ИГРА ЗАГРУЖАЕТСЯ...",
+    "saved": "ИГРА СОХРАНЕНА",
+    "loaded": "ИГРА ЗАГРУЖЕНА",
+    "save_failed": "НЕ УДАЛОСЬ СОХРАНИТЬ ИГРУ",
+    "load_failed": "НЕ УДАЛОСЬ ЗАГРУЗИТЬ ИГРУ",
+    "restart": "ЗАГРУЗИТЕ ПОСЛЕ ПЕРЕЗАПУСКА"
+  },
+  "en": {
+    "cleared": "",
+    "choice_title": "CHOOSE AN ACTION",
+    "choice_start": "START LEVEL FROM THE BEGINNING",
+    "choice_load": "LOAD SAVED GAME",
+    "choice_hint": "ARROWS - SELECT, ENTER - CONFIRM",
+    "saving": "SAVING GAME...",
+    "loading": "LOADING GAME...",
+    "saved": "GAME SAVED",
+    "loaded": "GAME LOADED",
+    "save_failed": "COULD NOT SAVE GAME",
+    "load_failed": "COULD NOT LOAD GAME",
+    "restart": "LOAD AFTER RESTARTING THE GAME"
+  }
+}

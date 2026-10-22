@@ -15,7 +15,7 @@ from wasdify.service import Service
 from wasdify.patches.kremlin_settings_spec import BINDINGS, SENSITIVITY, VIDEO, VALID, STATES
 
 
-def wait_for(operation, timeout=25):
+def wait_for(operation, timeout=25, *, poll_interval=.1):
     end=time.monotonic()+timeout
     while time.monotonic()<end:
         try:
@@ -23,7 +23,7 @@ def wait_for(operation, timeout=25):
             if value:return value
         except (OSError,ValueError):
             pass
-        time.sleep(.1)
+        time.sleep(poll_interval)
     raise TimeoutError('Guest did not reach the expected state')
 
 

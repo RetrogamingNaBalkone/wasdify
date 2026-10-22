@@ -166,5 +166,21 @@
   "resource_create": "Создать: {path}",
   "resource_replace": "Заменить: {path}",
   "resource_no_changes": "Уже установлен: {path}",
-  "resource_result": "{path}: {status}"
+  "resource_result": "{path}: {status}",
+  "prototype_intro": "WASDify: экспериментальные сохранения первого уровня RUS. F5 — сохранить игру, F9 — загрузить игру. При наличии сохранения выбор продолжения появится при запуске уровня и после смерти. Для выхода закройте игру.",
+  "prototype_choice_title": "ВЫБЕРИТЕ ДЕЙСТВИЕ",
+  "prototype_choice_start": "НАЧАТЬ УРОВЕНЬ С НАЧАЛА",
+  "prototype_choice_load": "ЗАГРУЗИТЬ СОХРАНЕНИЕ",
+  "prototype_choice_hint": "СТРЕЛКИ — ВЫБОР, ENTER — ПОДТВЕРДИТЬ",
+  "prototype_ready": "Прототип готов. Файл сохранения: {path}",
+  "prototype_saving": "ИГРА СОХРАНЯЕТСЯ…",
+  "prototype_loading": "ИГРА ЗАГРУЖАЕТСЯ…",
+  "prototype_saved": "ИГРА СОХРАНЕНА",
+  "prototype_loaded": "ИГРА ЗАГРУЖЕНА",
+  "prototype_error": "Операция не выполнена: {detail}",
+  "prototype_load_fresh_only": "Для загрузки перезапустите прототип.",
+  "prototype_prepared": "Запуск прототипа: {path}",
+  "prototype_closed": "Игра закрыта. Сохранения остаются в папке прототипа.",
+  "prototype_log": "Журнал запуска и ошибок: {path}",
+  "prototype_duration": "Длительность операции: {seconds} с."
 }

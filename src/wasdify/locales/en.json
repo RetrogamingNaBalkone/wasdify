@@ -166,5 +166,21 @@
   "resource_create": "Create: {path}",
   "resource_replace": "Replace: {path}",
   "resource_no_changes": "Already installed: {path}",
-  "resource_result": "{path}: {status}"
+  "resource_result": "{path}: {status}",
+  "prototype_intro": "WASDify: experimental RUS level-1 saves. F5 saves the game; F9 loads the game. When a saved game is available, a choice appears at level startup and after death. Close the game to exit.",
+  "prototype_choice_title": "CHOOSE AN ACTION",
+  "prototype_choice_start": "START LEVEL FROM THE BEGINNING",
+  "prototype_choice_load": "LOAD SAVED GAME",
+  "prototype_choice_hint": "ARROWS — SELECT, ENTER — CONFIRM",
+  "prototype_ready": "Prototype ready. Save file: {path}",
+  "prototype_saving": "SAVING GAME…",
+  "prototype_loading": "LOADING GAME…",
+  "prototype_saved": "GAME SAVED",
+  "prototype_loaded": "GAME LOADED",
+  "prototype_error": "Operation did not complete: {detail}",
+  "prototype_load_fresh_only": "Restart the prototype to load a snapshot.",
+  "prototype_prepared": "Start the prototype: {path}",
+  "prototype_closed": "Game closed. Saved games remain in the prototype directory.",
+  "prototype_log": "Session and error log: {path}",
+  "prototype_duration": "Operation duration: {seconds} s."
 }

@@ -13,6 +13,7 @@ public class GhidraKremlinWeapons extends GhidraScript {
                 var a = toAddr(address);
                 Function f = getFunctionAt(a);
                 if (f == null) { disassemble(a); f = createFunction(a, null); }
+                if (f == null) throw new IllegalArgumentException("No function at " + a);
                 out.println("FUNCTION " + a);
                 for (Instruction ins : currentProgram.getListing().getInstructions(f.getBody(), true))
                     out.println(ins.getAddress() + " " + ins);
