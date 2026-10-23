@@ -2,6 +2,17 @@
 ; Shared by the real-mode DOS setup and protected-mode game payload.
 ; Generated constants/tables are in settings-tables.inc (development only).
 
+; Compare an action/slot index without changing any general-purpose register.
+%macro active_limit 2
+    cmp byte [CFG_SAVE_ENABLED], 0
+    jne %%full
+    cmp %1, 19*%2
+    jmp %%done
+%%full:
+    cmp %1, ACTION_COUNT*%2
+%%done:
+%endmacro
+
 cfg_defaults:
     mov word [CFG_VIDEO], 0
     mov word [CFG_SENSITIVITY], 7
@@ -122,7 +133,7 @@ cfg_validate:
     jmp .inner
 .next:
     inc si
-    cmp si, ACTION_COUNT*2
+    active_limit si, 2
     jb .outer
     clc
     ret
@@ -281,7 +292,7 @@ cfg_parse:
     call cfg_match
     jnc .key_value
     add bx, 2
-    cmp bx, ACTION_COUNT*2
+    active_limit bx, 2
     jb .key_find
     jmp .skip
 .key_value:
@@ -391,7 +402,7 @@ cfg_serialize:
     call cfg_decimal
     call cfg_crlf
     add bp, 2
-    cmp bp, ACTION_COUNT*2
+    active_limit bp, 2
     jb .key
     mov cx, di
     sub cx, CFG_OUTPUT

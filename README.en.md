@@ -1,5 +1,12 @@
 # WASDify
 
+Conditional patch extensions use selected and validated installed patches.
+Installed prerequisites do not need to be selected again. For Dungeons of Kremlin,
+`save-load` adds save/load bindings to `game-settings` and updates its installed
+SETUP.EXE in the same transaction. Without saves, these actions stay hidden and
+do not reserve F5/F9. Clearing a checkbox does not uninstall a patch.
+[Implementation and verification](docs/games/dungeons-of-kremlin/conditional-extensions.md).
+
 `save-load` is available for RUS/ENG levels 1–3; explicitly select
 `weapon-selection-fix`. [Installation, compatibility and pending acceptance](docs/games/dungeons-of-kremlin/save-load-integration.md) (Russian).
 

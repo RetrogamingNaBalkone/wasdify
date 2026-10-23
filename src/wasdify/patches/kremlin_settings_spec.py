@@ -29,6 +29,7 @@ ACTIONS = (
 # Unsupported holes, PrintScreen and Pause's multi-byte sequences are excluded.
 SCANCODES = tuple(range(1, 0x54)) + (0x57, 0x58)
 VIDEO, SENSITIVITY, VERSION, VALID, SECTION = 16, 18, 20, 22, 23
+SAVE_ENABLED = 24
 BINDINGS, STATES, PATH, TEMP_PATH, BACKUP_PATH = 32, 80, 128, 400, 672
 BUFFER, LINE, OUTPUT, WORK = 1024, 5184, 5376, 8192
 DATA_SIZE = 12288
@@ -41,10 +42,11 @@ def sensitivity(step: int) -> Fraction:
     return Fraction(6, 5 * (13 - step))
 
 
-def initial_data() -> bytes:
+def initial_data(save_enabled: bool = False) -> bytes:
     import struct
     data = bytearray(DATA_SIZE)
     data[:16] = b"WASDify-CFG-v1\0\0"
+    data[SAVE_ENABLED] = int(save_enabled)
     struct.pack_into("<hhH", data, VIDEO, 0, 7, 0)
     for i, (_, first, second, _, _) in enumerate(ACTIONS):
         data[BINDINGS + i * 2:BINDINGS + i * 2 + 2] = bytes((first, second))

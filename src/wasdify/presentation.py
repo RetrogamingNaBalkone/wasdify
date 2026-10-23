@@ -4,7 +4,7 @@ from pathlib import Path
 from collections.abc import Mapping
 
 from .i18n import Translator
-from .models import ApplyResult, Detection, Plan
+from .models import ApplyResult, Detection, Plan, PatchDefinition
 from .service import Service
 
 
@@ -37,11 +37,36 @@ def detection_text(detection: Detection, service: Service, tr: Translator) -> st
 def plan_text(plan: Plan, service: Service, tr: Translator) -> str:
     lines = [detection_text(plan.detection, service, tr), "",
              tr("ready" if plan.ready else "blocked"), tr("changes", count=len(plan.changes))]
+    definitions = {p.id: p for p in service.list_patches(plan.detection.game_id)} if plan.detection.game_id else {}
+    titles = lambda ids: ", ".join(definitions[p].title[tr.language] for p in ids)
+    if plan.installed:
+        lines.append(tr("installed_patches", patches=titles(plan.installed)))
+    for patch in definitions.values():
+        for extension in patch.extensions:
+            if extension.id in plan.active_extensions:
+                lines.append(tr("active_extension", effect=extension.description[tr.language]))
+    if plan.updated:
+        lines.append(tr("updated_patches", patches=titles(plan.updated)))
+    if ("save-load-settings" in plan.active_extensions and "game-settings" in plan.updated
+            and any(f.action != "no_changes" for f in plan.files)):
+        lines.append(tr("setup_save_updated"))
     for item in plan.files:
         lines.append(tr("resource_"+item.action, path=str(item.path)))
     if plan.already_applied:
         lines.append(tr("already_applied", patches=", ".join(plan.already_applied)))
     lines.extend(tr.issue(issue) for issue in plan.issues)
+    return "\n".join(lines)
+
+
+def patch_details(patch: PatchDefinition, definitions: Mapping[str, PatchDefinition],
+                  tr: Translator) -> str:
+    names = lambda ids: ", ".join(definitions[p].title[tr.language] for p in ids) or tr("none")
+    lines = [patch.description[tr.language], tr("requires") + ": " + names(patch.dependencies)]
+    for extension in patch.extensions:
+        lines.append(tr("extends") + ": " + names((extension.target,)) + ". "
+                     + extension.description[tr.language])
+    if patch.conflicts:
+        lines.append(tr("conflicts") + ": " + names(patch.conflicts))
     return "\n".join(lines)
 
 

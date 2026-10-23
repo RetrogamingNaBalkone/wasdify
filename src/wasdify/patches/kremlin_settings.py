@@ -60,7 +60,7 @@ def _context(data, profile, segments):
     return context, matches[0][0], matches[0][1]+15
 
 
-def _install(data, payloads=None):
+def _install(data, payloads=None, *, save_enabled=False):
     (profile, located), segments = _profile(data)
     context, main, startup = _context(data, profile, segments)
     ne = struct.unpack_from("<I", data, 60)[0]
@@ -87,7 +87,10 @@ def _install(data, payloads=None):
         wasd.fail()
     payloads = resources() if payloads is None else payloads
     code = bytes.fromhex(payloads["runtime"][profile["language"]])
-    config = bytes.fromhex(payloads["data"])
+    config = bytearray.fromhex(payloads["data"])
+    if payloads.get("capabilities"):
+        from .kremlin_settings_spec import SAVE_ENABLED
+        config[SAVE_ENABLED] = int(save_enabled)
     exports = struct.unpack_from("<8H", code, 8)
     code_index, data_index = count+1, count+2
     input_segment, mouse_segment = located["input"], located["mouse"]
@@ -180,6 +183,20 @@ def installed(data):
     return data.endswith(MAGIC)
 
 
+def present(data):
+    if installed(data):
+        return True
+    try:
+        return any(data[s.start:s.start+8] == b"WASDSET1" for s in wasd.segments(data))
+    except WasdifyError:
+        return False
+
+
+def save_enabled(data):
+    from .kremlin_settings_spec import SAVE_ENABLED
+    return bool(data[wasd.segments(data)[-1].start + SAVE_ENABLED])
+
+
 def detect_language(data):
     """Language from independent contextual anchors, never from the filename."""
     if installed(data):
@@ -234,12 +251,12 @@ def restore_base(data):
             base[s.end:s.end+len(result)] = result
         base[ne:ne+len(header)] = header
         baseline = bytes(base)
-        if _install(baseline) != data:
+        if not any(_install(baseline, save_enabled=enabled) == data for enabled in (False, True)):
             # The pre-save 19-action version is a trusted WASDify artifact.
             # Validate it by complete reproduction before permitting migration.
-            previous = json.loads(files("wasdify").joinpath(
-                "data/kremlin_settings_legacy.json").read_text("ascii"))
-            if _install(baseline, previous) != data:
+            if not any(_install(baseline, json.loads(files("wasdify").joinpath(
+                    name).read_text("ascii"))) == data for name in (
+                        "data/kremlin_settings_legacy.json", "data/kremlin_settings_legacy21.json")):
                 wasd.fail()
         return baseline
     except (KeyError, IndexError, TypeError, ValueError, struct.error, OverflowError, RecursionError) as error:
@@ -277,26 +294,6 @@ class GameSettings:
 
 
 def analyze_selection(data, ordered, implementations, game_id):
-    """Compose in memory; emit disjoint edits against the one original snapshot.
-
-    Native relocation-table changes from HUD/font/render are incorporated before
-    adding the new fixups. No overlap is silently accepted by the engine.
-    """
-    if installed(data):
-        restore_base(data)
-        return {p:implementations[(game_id,p)].analyze({"main":data}) for p in ordered}
-    analyses = {p:implementations[(game_id,p)].analyze({"main":data})
-                for p in ordered if p != "game-settings"}
-    if any(a.issues for a in analyses.values()):
-        return {**analyses, "game-settings":PatchAnalysis(issues=tuple(
-            issue for a in analyses.values() for issue in a.issues))}
-    edits = tuple(c for a in analyses.values() for c in a.changes)
-    baseline = build_result({"main":data}, edits)["main"]
-    output = _install(baseline)
-    owners = ["game-settings"]*len(data)
-    for patch, analysis in analyses.items():
-        for change in analysis.changes:
-            owners[change.offset:change.offset+len(change.expected)] = [patch]*len(change.expected)
-    partition = _diff(data,output,baseline,owners)
-    return {p:PatchAnalysis(changes=tuple(partition.get(p,())),
-                            already_applied=p not in partition) for p in ordered}
+    """Compatibility entry point for the one game composition planner."""
+    from .kremlin_save_native import analyze_selection as compose
+    return compose(data, ordered, implementations, game_id)

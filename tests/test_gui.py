@@ -132,7 +132,7 @@ class GUITests(unittest.TestCase):
                 self.root.after(10, pulse)
 
         self.app.path.set(str(self.path))
-        with patch.object(self.app.service, "detect", side_effect=slow_detection):
+        with patch.object(self.app.service, "inspect", side_effect=slow_detection):
             self.app.check()
             self.root.after(10, pulse)
             self.finish()
@@ -148,6 +148,32 @@ class GUITests(unittest.TestCase):
         self.root.update()
         self.assertIsNotNone(self.root.focus_get())
         self.assertNotEqual(self.root.focus_get(), self.app.path_entry)
+
+    def test_installed_extension_details_and_automatic_setup_update(self):
+        from tests.test_kremlin_save_patch import executable, SETTINGS
+        from wasdify.service import Service
+        service = Service()
+        self.path.write_bytes(executable('ru'))
+        service.apply(service.plan({'main': self.path}, SETTINGS+('weapon-selection-fix',)))
+        self.app = Application(self.root, service, language='ru')
+        self.app.path.set(str(self.path))
+        self.app.check()
+        self.finish()
+        self.assertIn('Установлен', self.app.patch_checks['game-settings']['text'])
+        self.assertFalse(self.app.patch_vars['game-settings'].get())
+        self.app.patch_vars['save-load'].set(True)
+        self.app._invalidate()
+        self.assertIn('появятся назначения', self.app.patch_labels['save-load']['text'])
+        self.assertIn('Дополняет', self.app.patch_labels['save-load']['text'])
+        self.app.check()
+        self.finish()
+        self.assertEqual(self.app.plan.selected, ('save-load',))
+        self.assertIn('SETUP.EXE будет обновлён', self.app.result_widget.get('1.0', 'end'))
+        self.app.apply()
+        self.finish()
+        self.assertIn('Установлен', self.app.patch_checks['save-load']['text'])
+        self.app.path.set(str(self.path)+'other')
+        self.assertNotIn('Установлен', self.app.patch_checks['game-settings']['text'])
 
 
 if __name__ == "__main__":

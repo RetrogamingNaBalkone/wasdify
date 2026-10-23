@@ -9,13 +9,13 @@ from wasdify.patches import kremlin_settings_spec as spec
 
 
 class Machine:
-    def __init__(self, code):
+    def __init__(self, code, enabled=False):
         self.u = Uc(UC_ARCH_X86, UC_MODE_16)
         self.u.mem_map(0, 0x100000)
         self.code = code
         self.exports = struct.unpack_from("<8H",code,8)
         self.u.mem_write(0x10000,code)
-        self.u.mem_write(0x20000,spec.initial_data())
+        self.u.mem_write(0x20000,spec.initial_data(enabled))
         self.u.hook_add(UC_HOOK_CODE,self.observe)
 
     def observe(self,u,address,size,user):
@@ -140,6 +140,15 @@ def runtime_checks(lang,code):
     keys.clear();keys[0x12]=1
     run(exports[1]);assert struct.unpack('<I',u.mem_read(0x40128,4))[0]==0x10
     scenarios=8
+    # Inactive actions neither consume edge events nor leave pending states.
+    for enabled in (False, True):
+        u.mem_write(0x20000+spec.SAVE_ENABLED, bytes((enabled,)))
+        keys.clear();keys.update({0x3f:2,0x43:2})
+        run(exports[1])
+        assert bytes(u.mem_read(0x20000+spec.STATES+19,2)) == bytes((enabled,enabled))
+        assert keys[0x3f] == (0 if enabled else 2)
+        assert keys[0x43] == (0 if enabled else 2)
+        scenarios += 1
     for step in range(10):
         u.mem_write(0x20000+spec.SENSITIVITY,struct.pack('<H',step))
         pending=0;remainder=0
@@ -187,6 +196,24 @@ def runtime_checks(lang,code):
         if override:assert not bios
         scenarios+=1
     return scenarios
+
+
+def capability_checks(code):
+    for enabled in (False, True):
+        m = Machine(code, enabled)
+        # Dormant invalid fields must not reset an otherwise valid binding.
+        text = '[wasdify]\nversion=1\n[keys]\nfire=63,0\nsave=garbage\nload=63,0\n'
+        keys = m.parse(text)[1]
+        assert keys[14] == (0x1d if enabled else 63)
+        text = '[wasdify]\nversion=1\n[keys]\nfire=63,0\nsave=64,0\nload=68,0\n'
+        keys = m.parse(text)[1]
+        assert keys[14] == 63
+        assert keys[38:42] == (bytes((64,0,68,0)) if enabled else bytes((63,0,67,0)))
+        m.call(m.exports[5])
+        output = bytes(m.u.mem_read(0x20000+spec.OUTPUT, m.u.reg_read(UC_X86_REG_CX)))
+        assert (b'\r\nsave=' in output) == enabled
+        assert (b'\r\nload=' in output) == enabled
+    return 8
 
 
 def save_checks(code):
@@ -296,17 +323,17 @@ def main():
     result=resources();total=0
     for lang in ('ru','en'):
         code=bytes.fromhex(result['runtime'][lang])
-        total+=parser_checks(code)+runtime_checks(lang,code)
+        total+=parser_checks(code)+runtime_checks(lang,code)+capability_checks(code)
         from wasdify.service import Service
         from wasdify.resources import read_resource
-        declaration = next(f for p in Service().list_patches('dungeons-of-kremlin')
-                           if p.id == 'game-settings' for f in p.files if f.language == lang)
-        exe=read_resource(declaration.source, declaration.sha256);paras=struct.unpack_from('<H',exe,8)[0]
-        image=exe[paras*16:]
-        code_size=struct.unpack_from('<H',exe,14)[0]*16
-        total+=parser_checks(image[:code_size])
-        total+=save_checks(image[:code_size])
-        total+=irq_checks(image[:code_size])
+        for declaration in (f for p in Service().list_patches('dungeons-of-kremlin')
+                            if p.id == 'game-settings' for f in p.files if f.language == lang):
+            exe=read_resource(declaration.source, declaration.sha256);paras=struct.unpack_from('<H',exe,8)[0]
+            image=exe[paras*16:]
+            code_size=struct.unpack_from('<H',exe,14)[0]*16
+            total+=parser_checks(image[:code_size])+capability_checks(image[:code_size])
+            total+=save_checks(image[:code_size])
+            total+=irq_checks(image[:code_size])
     print(f'{total} configuration/parser/input/mouse instruction scenarios passed')
 
 

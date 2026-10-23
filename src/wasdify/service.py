@@ -5,7 +5,7 @@ from typing import Callable, Mapping
 
 from .catalog import Catalog, load_catalog
 from .engine import build_result, order_patches
-from .models import (ApplyResult, Detection, Issue, Patch, PatchDefinition, Plan, PlannedFile,
+from .models import (ApplyResult, Detection, Inspection, Issue, Patch, PatchDefinition, Plan, PlannedFile,
                      WasdifyError)
 from .patches import GAME_PROBES, IMPLEMENTATIONS
 from .storage import read_target, sha256, write_result, write_set
@@ -60,6 +60,35 @@ class Service:
     def list_patches(self, game_id: str) -> tuple[PatchDefinition, ...]:
         return self.catalog.game(game_id).patches
 
+    def _installed(self, data: bytes, detection: Detection) -> tuple[str, ...]:
+        if detection.game_id is None:
+            return ()
+        game = self.catalog.game(detection.game_id)
+        found = set()
+        base = data
+        if game.id == "dungeons-of-kremlin":
+            from .patches import kremlin_save_native as saves
+            base, layers = saves.unwrap_layers(base)
+            found.update(layers)
+        for definition in game.patches:
+            if definition.id in ("save-load", "game-settings") and game.id == "dungeons-of-kremlin":
+                continue
+            implementation = self.implementations.get((game.id, definition.id))
+            if definition.implemented and implementation is not None:
+                try:
+                    analysis = implementation.analyze({"main": base})
+                except WasdifyError:
+                    continue
+                if analysis.already_applied and not analysis.issues and not analysis.changes:
+                    found.add(definition.id)
+        return tuple(p.id for p in game.patches if p.id in found)
+
+    def inspect(self, path: str | Path, game_id: str | None = None) -> Inspection:
+        path = Path(path).absolute()
+        data = read_target(path)
+        detection = self._detect(data, path, game_id)
+        return Inspection(detection, self._installed(data, detection))
+
     def plan(self, targets: Mapping[str, str | Path], selected: tuple[str, ...],
              game_id: str | None = None) -> Plan:
         if len(targets) != 1:
@@ -75,19 +104,26 @@ class Service:
         changes = []
         applied = []
         additional = []
+        installed = ()
+        active_extensions = ()
+        updated = ()
         if detection.game_id is None:
             issues.append(Issue("unknown_file"))
         else:
             game = self.catalog.game(detection.game_id)
             try:
-                ordered = order_patches(game, chosen)
+                installed = self._installed(data["main"], detection)
+                ordered = order_patches(game, chosen, installed)
             except WasdifyError as error:
                 issues.append(error.issue)
+            effective = set(installed) | set(ordered)
+            active_extensions = tuple(e.id for p in game.patches if p.id in effective
+                                      for e in p.extensions if e.target in effective)
             definitions = {p.id: p for p in game.patches}
             grouped = None
             from .patches import kremlin_save_native as saves
             if (game.id == "dungeons-of-kremlin" and ordered
-                    and ("save-load" in ordered or saves.present(data["main"]))
+                    and effective.intersection(("save-load", "game-settings"))
                     and isinstance(self.implementations.get((game.id, "save-load")), saves.SaveLoad)
                     and all(definitions[p].implemented and (game.id,p) in self.implementations for p in ordered)):
                 try:
@@ -95,19 +131,6 @@ class Service:
                 except WasdifyError as error:
                     issues.append(error.issue)
                     ordered_to_analyze = ()
-                else:
-                    ordered_to_analyze = ordered
-            elif "game-settings" in ordered:
-                from .patches.kremlin_settings import GameSettings, analyze_selection
-                if (isinstance(self.implementations.get((game.id, "game-settings")), GameSettings)
-                        and all(definitions[p].implemented and (game.id,p) in self.implementations for p in ordered)):
-                    try:
-                        grouped = analyze_selection(data["main"], ordered, self.implementations, game.id)
-                    except WasdifyError as error:
-                        issues.append(error.issue)
-                        ordered_to_analyze = ()
-                    else:
-                        ordered_to_analyze = ordered
                 else:
                     ordered_to_analyze = ordered
             else:
@@ -142,18 +165,28 @@ class Service:
                 else:
                     changes.extend(analysis.changes)
             try:
-                build_result(data, tuple(changes))
+                output = build_result(data, tuple(changes))["main"]
+                if grouped is not None and changes:
+                    _, before_layers = saves.unwrap_layers(data["main"])
+                    _, after_layers = saves.unwrap_layers(output)
+                    updated = tuple(p for p in installed if p not in chosen
+                                    and p in before_layers and before_layers[p] != after_layers.get(p))
             except WasdifyError as error:
                 issues.append(error.issue)
         if detection.game_id and not issues:
             definitions = {p.id: p for p in self.catalog.game(detection.game_id).patches}
             destinations = {}
-            for patch_id in ordered:
+            file_owners = tuple(dict.fromkeys(ordered + tuple(
+                p for p in installed if p == "game-settings")))
+            for patch_id in file_owners:
                 declared = definitions[patch_id].files
                 if any(f.language is not None for f in declared) and detection.language is None:
                     issues.append(Issue("resource_language_required"))
                     continue
-                variants = [f for f in declared if f.language is None or f.language == detection.language]
+                variant = ("save-load" if "save-load-settings" in active_extensions else "base")
+                variants = [f for f in declared
+                            if (f.language is None or f.language == detection.language)
+                            and (f.variant is None or f.variant == variant)]
                 if declared and not variants:
                     issues.append(Issue("resource_language_required"))
                 for item in variants:
@@ -182,8 +215,12 @@ class Service:
                             additional.append(planned)
                     except WasdifyError as error:
                         issues.append(error.issue)
+            if ("game-settings" in installed and "game-settings" not in chosen
+                    and any(f.action != "no_changes" for f in additional)
+                    and "game-settings" not in updated):
+                updated += ("game-settings",)
         return Plan(paths, detection, chosen, ordered, tuple(changes), tuple(applied), tuple(issues),
-                    tuple(additional))
+                    tuple(additional), installed, active_extensions, updated)
 
     def apply(self, plan: Plan, *, backup: bool = True) -> ApplyResult:
         if plan.issues:
@@ -197,7 +234,8 @@ class Service:
         # Re-analyze instead of trusting externally constructed/stale edit lists.
         fresh = self.plan(plan.targets, plan.selected, plan.detection.game_id)
         if (not fresh.ready or fresh.changes != plan.changes or fresh.ordered != plan.ordered
-                or fresh.files != plan.files):
+                or fresh.files != plan.files or fresh.installed != plan.installed
+                or fresh.active_extensions != plan.active_extensions or fresh.updated != plan.updated):
             raise WasdifyError("plan_changed")
         output = build_result({"main": original}, fresh.changes)["main"]
         if not fresh.files:

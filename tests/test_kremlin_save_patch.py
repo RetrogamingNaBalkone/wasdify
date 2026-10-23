@@ -76,7 +76,7 @@ class SavePatchTests(unittest.TestCase):
                 self.assertTrue(plan.ready,plan.issues)
                 service.apply(plan)
                 inner=saves.restore_base(path.read_bytes())
-                self.assertEqual(inner,settings._install(settings.restore_base(inner)))
+                self.assertEqual(inner,settings._install(settings.restore_base(inner), save_enabled=True))
                 bad=bytearray(old);bad[segments(old)[-2].start+42]^=1
                 path.write_bytes(bad)
                 self.assertFalse(service.plan({'main':path},SAVE).ready)

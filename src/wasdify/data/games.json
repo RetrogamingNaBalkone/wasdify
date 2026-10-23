@@ -102,8 +102,8 @@
             "en": "Game settings through DOS setup and INI"
           },
           "description": {
-            "ru": "Чтение KREMLIN.INI основным EXE: разрешение, чувствительность мыши и по две клавиши на действие. Отдельные русский и английский DOS SETUP.EXE выгружаются через WASDify. Требует явного выбора WASD и исправления 640×400. Нужный DOS SETUP.EXE автоматически устанавливается рядом с EXE игры.",
-            "en": "Read KREMLIN.INI in the game EXE: resolution, mouse sensitivity and two keys per action. Export separate Russian and English DOS SETUP.EXE builds through WASDify. Explicitly select WASD and the 640×400 fix. The matching DOS SETUP.EXE is installed automatically beside the game executable."
+            "ru": "Чтение KREMLIN.INI основным EXE: разрешение, чувствительность мыши и по две клавиши на действие. Требует WASD и исправления 640×400. DOS SETUP.EXE устанавливается рядом с игрой; с сохранениями добавляет их назначения клавиш.",
+            "en": "Read resolution, mouse sensitivity and two keys per action from KREMLIN.INI. Requires WASD and the 640?400 fix. Install DOS SETUP.EXE beside the game; add save/load bindings when saves are installed."
           },
           "roles": [
             "main"
@@ -116,18 +116,36 @@
           "implemented": true,
           "files": [
             {
-              "source": "dungeons-of-kremlin/en/SETUP.EXE",
+              "source": "dungeons-of-kremlin/en/base/SETUP.EXE",
               "language": "en",
               "role": "main",
               "destination": "SETUP.EXE",
-              "sha256": "7fe63211205a84b744b7cbf173834cf254ac27beca62a6be3d13e17f66313264"
+              "sha256": "cedfbcca28b8f925b0a96e442d6b8a453cb67409e45b45995081714d9c6182f0",
+              "variant": "base"
             },
             {
-              "source": "dungeons-of-kremlin/ru/SETUP.EXE",
+              "source": "dungeons-of-kremlin/en/save-load/SETUP.EXE",
+              "language": "en",
+              "role": "main",
+              "destination": "SETUP.EXE",
+              "sha256": "c35df2cb2dd57afb0351c5b8d5106e4f8a3155f0357318060ee44f64b2ecb4bc",
+              "variant": "save-load"
+            },
+            {
+              "source": "dungeons-of-kremlin/ru/base/SETUP.EXE",
               "language": "ru",
               "role": "main",
               "destination": "SETUP.EXE",
-              "sha256": "68e6a191fc6caa6ff8e64520a4365ad8982dea95bc082f2e6abd4f4016a77f0b"
+              "sha256": "2fe12ebd207194cdee5d481c7c0eb5c825bae229b087fc030e83bb93f3d0a52a",
+              "variant": "base"
+            },
+            {
+              "source": "dungeons-of-kremlin/ru/save-load/SETUP.EXE",
+              "language": "ru",
+              "role": "main",
+              "destination": "SETUP.EXE",
+              "sha256": "55295789fffa3db3d29aaef2fba914c97c7c1bceb7fee6e3798060b6cb1f2029",
+              "variant": "save-load"
             }
           ]
         },
@@ -182,7 +200,17 @@
             "weapon-selection-fix"
           ],
           "conflicts": [],
-          "implemented": true
+          "implemented": true,
+          "extensions": [
+            {
+              "id": "save-load-settings",
+              "target": "game-settings",
+              "description": {
+                "ru": "В настройках появятся назначения сохранения и загрузки.",
+                "en": "Add save and load key bindings to game settings."
+              }
+            }
+          ]
         }
       ]
     }

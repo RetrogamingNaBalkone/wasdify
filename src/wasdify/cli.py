@@ -6,7 +6,7 @@ import sys
 from . import __version__
 from .i18n import Translator, default_language
 from .models import Issue, WasdifyError, exit_code
-from .presentation import apply_text, detection_text, plan_text, to_wire
+from .presentation import apply_text, detection_text, plan_text, patch_details, to_wire
 from .service import Service
 
 
@@ -97,18 +97,23 @@ def main(argv: list[str] | None = None) -> int:
             emit({"games": data}, "\n".join(item["id"] + " — " + item["title"] for item in data))
         elif args.command == "patches":
             patches = service.list_patches(args.game)
+            definitions = {p.id: p for p in patches}
             lines = []
             for patch in patches:
                 lines.extend([patch.id + " — " + patch.title[tr.language],
-                              patch.description[tr.language],
-                              tr("dependencies") + ": " + (", ".join(patch.dependencies) or tr("none")),
-                              tr("conflicts") + ": " + (", ".join(patch.conflicts) or tr("none")), ""])
+                              patch_details(patch, definitions, tr), ""])
             emit({"patches": patches}, "\n".join(lines))
         elif args.command == "detect":
-            detection = service.detect(args.path, args.game)
+            inspection = service.inspect(args.path, args.game)
+            detection = inspection.detection
             issues = () if detection.game_id else (Issue("unknown_file"),)
-            emit({"detection": detection, "issues": issues},
-                 detection_text(detection, service, tr) + ("\n" + tr("unknown_file") if issues else ""))
+            text = detection_text(detection, service, tr)
+            if inspection.installed:
+                definitions = {p.id: p for p in service.list_patches(detection.game_id)}
+                text += "\n" + tr("installed_patches", patches=", ".join(
+                    definitions[p].title[tr.language] for p in inspection.installed))
+            emit({"detection": detection, "installed": inspection.installed, "issues": issues},
+                 text + ("\n" + tr("unknown_file") if issues else ""))
             return exit_code(issues)
         else:
             plan = service.plan({"main": args.path}, tuple(args.patch), args.game)

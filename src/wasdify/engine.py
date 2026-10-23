@@ -4,11 +4,12 @@ from typing import Mapping
 from .models import Change, Game, WasdifyError
 
 
-def order_patches(game: Game, selected: tuple[str, ...]) -> tuple[str, ...]:
+def order_patches(game: Game, selected: tuple[str, ...],
+                  installed: tuple[str, ...] = ()) -> tuple[str, ...]:
     definitions = {patch.id: patch for patch in game.patches}
     if not selected:
         raise WasdifyError("no_patches")
-    chosen = set(selected)
+    chosen = set(selected) | set(installed)
     for patch_id in selected:
         if patch_id not in definitions:
             raise WasdifyError("unknown_patch", patch=patch_id)
@@ -17,6 +18,13 @@ def order_patches(game: Game, selected: tuple[str, ...]) -> tuple[str, ...]:
             if dependency not in chosen:
                 raise WasdifyError("missing_dependency", patch=patch_id, dependency=dependency)
         for conflict in patch.conflicts:
+            if conflict in chosen:
+                raise WasdifyError("patch_conflict", patch=patch_id, conflict=conflict)
+    for patch_id in installed:
+        for dependency in definitions[patch_id].dependencies:
+            if dependency not in chosen:
+                raise WasdifyError("missing_dependency", patch=patch_id, dependency=dependency)
+        for conflict in definitions[patch_id].conflicts:
             if conflict in chosen:
                 raise WasdifyError("patch_conflict", patch=patch_id, conflict=conflict)
     ordered: list[str] = []
@@ -33,9 +41,10 @@ def order_patches(game: Game, selected: tuple[str, ...]) -> tuple[str, ...]:
             visit(dependency)
         visiting.remove(patch_id)
         visited.add(patch_id)
-        ordered.append(patch_id)
+        if patch_id in selected:
+            ordered.append(patch_id)
 
-    for patch_id in dict.fromkeys(selected):
+    for patch_id in dict.fromkeys(selected + installed):
         visit(patch_id)
     return tuple(ordered)
 

@@ -48,13 +48,15 @@ def preview(api, lang, path):
                      + chunk(b'IDAT', zlib.compress(raw)) + chunk(b'IEND', b''))
 
 
-def trial(lang, work):
-    game = work / lang
+def trial(lang, work, enabled=False):
+    variant = 'save-load' if enabled else 'base'
+    game = work / (lang + '-' + variant)
     game.mkdir()
     service = Service()
     from wasdify.resources import read_resource
     declaration = next(f for p in service.list_patches('dungeons-of-kremlin')
-                       if p.id == 'game-settings' for f in p.files if f.language == lang)
+                       if p.id == 'game-settings' for f in p.files
+                       if f.language == lang and f.variant == variant)
     (game/'SETUP.EXE').write_bytes(read_resource(declaration.source, declaration.sha256))
     port = 8137
     api = Api(port)
@@ -64,6 +66,7 @@ def trial(lang, work):
         pass
     else:
         raise RuntimeError('UI test port already in use')
+    work = game
     config = work / f'{lang}.conf'
     config.write_text(f'''[sdl]
 fullscreen = off
@@ -106,10 +109,15 @@ SETUP.EXE
                 bios_key(api, 0x50)
                 check_selection(row)
             assert ('джойстик' if lang == 'ru' else 'joystick') in text(api).splitlines()[21].lower()
-            for row in (22, 23):
+            if enabled:
+                for row in (22, 23):
+                    bios_key(api, 0x50)
+                    check_selection(row)
+                assert ('загрузить игру' if lang == 'ru' else 'load game') in text(api).splitlines()[23].lower()
+            else:
                 bios_key(api, 0x50)
-                check_selection(row)
-            assert ('загрузить игру' if lang == 'ru' else 'load game') in text(api).splitlines()[23].lower()
+                check_selection(21)
+                assert not any(text(api).splitlines()[row].strip() for row in (22,23))
             bios_key(api, 0x4d)
             assert text(api).splitlines()[0].rstrip().endswith('2')
             bios_key(api, 1, 27)
@@ -118,6 +126,9 @@ SETUP.EXE
             bios_key(api, 0x50)
             bios_key(api, 0x1c, 13)
             wait_for(lambda: (game / 'KREMLIN.INI').exists())
+            ini = (game / 'KREMLIN.INI').read_bytes()
+            assert (b'\r\nsave=' in ini) == enabled
+            assert (b'\r\nload=' in ini) == enabled
             check_selection(7)
             preview(api, lang, work / f'{lang}-saved.png')
             bios_key(api, 0x1c, 13)
@@ -134,5 +145,6 @@ if __name__ == '__main__':
     work = ROOT / 'build' / ('setup-ui-' + datetime.now().strftime('%Y%m%d-%H%M%S'))
     work.mkdir(parents=True)
     for language in ('ru', 'en'):
-        trial(language, work)
+        for enabled in (False, True):
+            trial(language, work, enabled)
     print(json.dumps({'status': 'passed', 'previews': str(work)}))

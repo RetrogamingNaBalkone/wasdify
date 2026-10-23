@@ -58,6 +58,7 @@ def main() -> int:
     for game in expected["games"]:
         for definition in game["patches"]:
             definition.setdefault("files", [])
+            definition.setdefault("extensions", [])
     for language in ("ru", "en"):
         for game in expected["games"]:
             completed = subprocess.run(

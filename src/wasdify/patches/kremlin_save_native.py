@@ -100,7 +100,10 @@ def _install_validated(source):
         baseline = settings.restore_base(source)
         # Service migrates previous settings before reaching this layer.
         # A standalone analyzer must not bind to the old 19-action layout.
-        if settings._install(baseline) != source:
+        previous = json.loads(files("wasdify").joinpath(
+            "data/kremlin_settings_legacy21.json").read_text("ascii"))
+        if (settings._install(baseline, save_enabled=True) != source
+                and settings._install(baseline, previous) != source):
             fail()
     expected_count = context["segments"] + (2 if has_settings else 0)
     if (count != expected_count or u16(ne+34) != 64 or u16(ne+50) != 9
@@ -231,17 +234,29 @@ class SaveLoad:
         return PatchAnalysis(changes=_diff(data,_install(data)))
 
 
+def unwrap_layers(data):
+    """Return the validated base and owned appended artifacts for each layer."""
+    layers = {}
+    if present(data):
+        base = restore_base(data)
+        layers["save-load"] = data[len(base):]
+        data = base
+    if settings.present(data):
+        base = settings.restore_base(data)
+        layers["game-settings"] = data[len(base):]
+        data = base
+    return data, layers
+
+
 def analyze_selection(data, ordered, implementations, game_id):
     """Unwrap validated layers, compose simple patches, rebuild preserved layers.
 
     Adding a patch after save/settings must update relocated copies and replay
     manifests too. Analyses and final nonoverlapping edits share one snapshot.
     """
-    save_present = present(data)
-    base = restore_base(data) if save_present else data
-    settings_present = settings.installed(base)
-    if settings_present:
-        base = settings.restore_base(base)
+    base, layers = unwrap_layers(data)
+    save_present = "save-load" in layers
+    settings_present = "game-settings" in layers
     simple = {p:implementations[(game_id,p)].analyze({"main":base})
               for p in ordered if p not in ("save-load","game-settings")}
     if any(a.issues for a in simple.values()):
@@ -250,7 +265,7 @@ def analyze_selection(data, ordered, implementations, game_id):
     baseline = build_result({"main":base},tuple(c for a in simple.values() for c in a.changes))["main"]
     output = baseline
     if settings_present or "game-settings" in ordered:
-        output = settings._install(output)
+        output = settings._install(output, save_enabled=save_present or "save-load" in ordered)
     if save_present or "save-load" in ordered:
         output = _install(output)
     edits = _diff(data,output)

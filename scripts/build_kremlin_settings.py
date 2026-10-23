@@ -81,7 +81,7 @@ def build(nasm, refresh=False):
     work = ROOT / "build/settings"
     work.mkdir(parents=True, exist_ok=True)
     tables(work)
-    result = {"format": 1, "data": spec.initial_data().hex(), "runtime": {}}
+    result = {"format": 1, "capabilities": True, "data": spec.initial_data().hex(), "runtime": {}}
     setup = {}
     def assemble(source, name, defines):
         path = work / name
@@ -93,22 +93,25 @@ def build(nasm, refresh=False):
         runtime = assemble("kremlin_settings.asm", f"runtime-{lang}.bin", {"ENG": int(lang=="en")})
         result["runtime"][lang] = runtime.hex()
         ui(work, lang)
-        definitions = {"ENG": 0, "LANG_RU": int(lang=="ru"), "DATA_PARAS": 0}
-        code = assemble("kremlin_setup.asm", f"setup-{lang}.bin", definitions)
-        paragraphs = (len(code)+15)//16
-        definitions["DATA_PARAS"] = paragraphs
-        code = assemble("kremlin_setup.asm", f"setup-{lang}.bin", definitions)
-        assert paragraphs == (len(code)+15)//16
-        image = code.ljust(paragraphs*16, b"\0") + spec.initial_data()
-        size = 32+len(image)
-        header = struct.pack("<14H", 0x5a4d, size%512, (size+511)//512, 0, 2,
-                             (65536-spec.DATA_SIZE)//16, 0xffff, paragraphs, 0xfff0,
-                             0, struct.unpack_from("<H",code,8)[0], 0, 28, 0).ljust(32,b"\0")
-        exe = header+image
-        (work/f"SETUP-{lang.upper()}.EXE").write_bytes(exe)
-        setup[f"dungeons-of-kremlin/{lang}/SETUP.EXE"] = exe
-        print(lang, "runtime", len(runtime), hashlib.sha256(runtime).hexdigest(),
-              "setup", len(exe), hashlib.sha256(exe).hexdigest())
+        for enabled in (False, True):
+            variant = "save-load" if enabled else "base"
+            definitions = {"ENG": 0, "LANG_RU": int(lang=="ru"), "DATA_PARAS": 0,
+                           "SETUP_ACTION_COUNT": 21 if enabled else 19}
+            code = assemble("kremlin_setup.asm", f"setup-{lang}-{variant}.bin", definitions)
+            paragraphs = (len(code)+15)//16
+            definitions["DATA_PARAS"] = paragraphs
+            code = assemble("kremlin_setup.asm", f"setup-{lang}-{variant}.bin", definitions)
+            assert paragraphs == (len(code)+15)//16
+            image = code.ljust(paragraphs*16, b"\0") + spec.initial_data(enabled)
+            size = 32+len(image)
+            header = struct.pack("<14H", 0x5a4d, size%512, (size+511)//512, 0, 2,
+                                 (65536-spec.DATA_SIZE)//16, 0xffff, paragraphs, 0xfff0,
+                                 0, struct.unpack_from("<H",code,8)[0], 0, 28, 0).ljust(32,b"\0")
+            exe = header+image
+            (work/f"SETUP-{lang.upper()}-{variant}.EXE").write_bytes(exe)
+            setup[f"dungeons-of-kremlin/{lang}/{variant}/SETUP.EXE"] = exe
+            print(lang, variant, "runtime", len(runtime), hashlib.sha256(runtime).hexdigest(),
+                  "setup", len(exe), hashlib.sha256(exe).hexdigest())
     target = ROOT / "src/wasdify/data/kremlin_settings.json"
     archive = target.with_name("WASDify.pak")
     packaged = build_pak(setup)

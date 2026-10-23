@@ -33,6 +33,14 @@ class AdditionalFile:
     role: str
     destination: str
     sha256: str
+    variant: str | None = None
+
+
+@dataclass(frozen=True)
+class PatchExtension:
+    id: str
+    target: str
+    description: Mapping[str, str]
 
 
 @dataclass(frozen=True)
@@ -45,6 +53,7 @@ class PatchDefinition:
     conflicts: tuple[str, ...] = ()
     implemented: bool = False
     files: tuple[AdditionalFile, ...] = ()
+    extensions: tuple[PatchExtension, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -65,6 +74,12 @@ class Detection:
     language: str | None = None
     method: str = "unknown"
     hints: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
+class Inspection:
+    detection: Detection
+    installed: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -107,6 +122,9 @@ class Plan:
     already_applied: tuple[str, ...] = ()
     issues: tuple[Issue, ...] = ()
     files: tuple[PlannedFile, ...] = ()
+    installed: tuple[str, ...] = ()
+    active_extensions: tuple[str, ...] = ()
+    updated: tuple[str, ...] = ()
 
     @property
     def ready(self) -> bool:

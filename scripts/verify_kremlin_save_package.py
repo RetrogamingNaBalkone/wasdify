@@ -51,8 +51,12 @@ service = Service()
 chosen = ('weapon-selection-fix','save-load','wasd','resolution-640x400','game-settings')
 for lang in ('ru', 'en'):
     path = target/lang/'synthetic.exe'
-    plan = service.plan({'main':path}, chosen)
+    plan = service.plan({'main':path}, ('wasd','resolution-640x400','game-settings','weapon-selection-fix'))
     assert plan.ready, plan.issues
+    assert service.apply(plan).status == 'applied'
+    plan = service.plan({'main':path}, ('save-load',))
+    assert plan.ready and plan.active_extensions == ('save-load-settings',), plan.issues
+    assert plan.updated == ('game-settings',) and plan.files[0].action == 'replace'
     assert service.apply(plan).status == 'applied'
     assert service.apply(service.plan({'main':path}, chosen)).status == 'no_changes'
     # Layer removal retains the selected simple patches in the base image.
@@ -60,7 +64,8 @@ for lang in ('ru', 'en'):
     for patch in ('weapon-selection-fix', 'wasd', 'resolution-640x400'):
         assert service.implementations[('dungeons-of-kremlin', patch)].analyze({'main':baseline}).already_applied
     declaration = next(f for p in service.list_patches('dungeons-of-kremlin')
-                       if p.id == 'game-settings' for f in p.files if f.language == lang)
+                       if p.id == 'game-settings' for f in p.files
+                       if f.language == lang and f.variant == 'save-load')
     assert (path.parent/'SETUP.EXE').read_bytes() == read_resource(declaration.source, declaration.sha256)
 for raw in resources()['runtime'].values():
     payload = bytes.fromhex(raw)

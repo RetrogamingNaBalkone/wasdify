@@ -6,8 +6,8 @@ import tkinter as tk
 from tkinter import filedialog, ttk
 
 from .i18n import Translator
-from .models import ApplyResult, Detection, Issue, Plan, WasdifyError
-from .presentation import apply_text, detection_text, plan_text
+from .models import ApplyResult, Detection, Inspection, Issue, Plan, WasdifyError
+from .presentation import apply_text, detection_text, plan_text, patch_details
 from .service import Service
 
 
@@ -25,6 +25,10 @@ class Application:
         self.detected_game_id: str | None = None
         self.patch_vars: dict[str, tk.BooleanVar] = {}
         self.patch_game_id: str | None = None
+        self.installed: tuple[str, ...] = ()
+        self.inspected_path: str | None = None
+        self.patch_labels = {}
+        self.patch_checks = {}
         self.plan: Plan | None = None
         self.last_result: Detection | Plan | ApplyResult | Issue | None = None
         self.busy = False
@@ -90,18 +94,25 @@ class Application:
         canvas.bind("<Configure>", lambda event: canvas.itemconfigure(patch_window, width=event.width))
         self.patch_frame.bind("<Configure>", lambda event: canvas.configure(scrollregion=canvas.bbox("all")))
         game_id = self.manual_game_id or self.detected_game_id
+        self.patch_labels = {}
+        self.patch_checks = {}
         if game_id != self.patch_game_id:
             self.patch_vars.clear()
             self.patch_game_id = game_id
         if game_id:
+            definitions = {p.id: p for p in self.service.list_patches(game_id)}
+            ttk.Label(self.patch_frame, text=tr("selection_additive"), wraplength=780).pack(anchor="w")
             for patch in self.service.list_patches(game_id):
                 variable = self.patch_vars.setdefault(patch.id, tk.BooleanVar(self.root, False))
-                register(ttk.Checkbutton(self.patch_frame, text=patch.title[tr.language],
-                                         variable=variable, command=self._invalidate)).pack(anchor="w", pady=(4, 0))
-                description = (patch.description[tr.language] + "\n"
-                               + tr("dependencies") + ": " + (", ".join(patch.dependencies) or tr("none"))
-                               + " · " + tr("conflicts") + ": " + (", ".join(patch.conflicts) or tr("none")))
-                ttk.Label(self.patch_frame, text=description, wraplength=780).pack(anchor="w", padx=(24, 0), pady=(0, 6))
+                title = patch.title[tr.language] + (" · " + tr("installed") if patch.id in self.installed else "")
+                check = register(ttk.Checkbutton(self.patch_frame, text=title,
+                                                 variable=variable, command=self._invalidate))
+                check.pack(anchor="w", pady=(4, 0))
+                self.patch_checks[patch.id] = check
+                label = ttk.Label(self.patch_frame, wraplength=780)
+                label.pack(anchor="w", padx=(24, 0), pady=(0, 6))
+                self.patch_labels[patch.id] = label
+            self._refresh_patch_details()
         else:
             ttk.Label(self.patch_frame, text=tr("choose_file"), wraplength=780).pack(anchor="w")
 
@@ -140,14 +151,35 @@ class Application:
         self.manual_game_id = self.game_ids[self.game_box.current()]
         self.plan = None
         self.last_result = None
+        self.installed = ()
+        self.inspected_path = None
         self._build()
 
     def _invalidate(self, *args) -> None:
+        if self.path.get().strip() != self.inspected_path:
+            self.installed = ()
         self.plan = None
         self.last_result = Issue("selection_changed")
         if hasattr(self, "apply_button"):
             self._show_result()
             self._update_controls()
+            self._refresh_patch_details()
+
+    def _refresh_patch_details(self) -> None:
+        game_id = self.manual_game_id or self.detected_game_id
+        if not game_id:
+            return
+        definitions = {p.id: p for p in self.service.list_patches(game_id)}
+        effective = set(self.installed) | {p for p, v in self.patch_vars.items() if v.get()}
+        for patch_id, label in self.patch_labels.items():
+            title = definitions[patch_id].title[self.tr.language]
+            if patch_id in self.installed:
+                title += " · " + self.tr("installed")
+            self.patch_checks[patch_id].configure(text=title)
+            text = patch_details(definitions[patch_id], definitions, self.tr)
+            if patch_id == "save-load" and patch_id in effective:
+                text += "\n" + self.tr("save_settings_effect" if "game-settings" in effective else "save_fixed_keys")
+            label.configure(text=text)
 
     def _update_controls(self) -> None:
         for widget, normal in self.controls:
@@ -207,6 +239,18 @@ class Application:
             self.root.after(30, self._poll)
             return
         self.busy = False
+        if isinstance(result, Issue):
+            self.installed = ()
+            self.inspected_path = None
+        if isinstance(result, tuple):
+            result, inspection = result
+            self.installed = inspection.installed
+            self.inspected_path = self.path.get().strip()
+        if isinstance(result, (Inspection, Plan)):
+            self.installed = result.installed
+            self.inspected_path = self.path.get().strip()
+        if isinstance(result, Inspection):
+            result = result.detection
         self.last_result = result
         self.plan = result if isinstance(result, Plan) and result.ready else None
         detection = result.detection if isinstance(result, Plan) else result
@@ -229,14 +273,17 @@ class Application:
         if selected:
             self._start(lambda: self.service.plan({"main": path}, selected, game_id))
         else:
-            self._start(lambda: self.service.detect(path, game_id))
+            self._start(lambda: self.service.inspect(path, game_id))
 
     def apply(self) -> None:
         if self.busy or self.plan is None or not self.plan.ready:
             return
         plan, backup = self.plan, self.backup.get()
         self.plan = None
-        self._start(lambda: self.service.apply(plan, backup=backup))
+        def apply_and_inspect():
+            result = self.service.apply(plan, backup=backup)
+            return result, self.service.inspect(plan.targets["main"], plan.detection.game_id)
+        self._start(apply_and_inspect)
 
     def close(self) -> None:
         # Do not destroy Tk while a file transaction is still running.

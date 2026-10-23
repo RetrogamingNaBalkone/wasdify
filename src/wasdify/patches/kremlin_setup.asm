@@ -88,7 +88,7 @@ down:
     mov ax, 5
     cmp byte [CFG_WORK+36], 0
     je .limit
-    mov ax, ACTION_COUNT-1
+    mov ax, SETUP_ACTION_COUNT-1
 .limit:
     cmp [CFG_WORK+32], ax
     jae main_loop
@@ -301,7 +301,7 @@ draw:
     mov ax, 6
     cmp byte [CFG_WORK+36], 0
     je .limit
-    mov ax, ACTION_COUNT
+    mov ax, SETUP_ACTION_COUNT
 .limit:
     cmp bp, ax
     jb .row

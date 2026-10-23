@@ -147,6 +147,11 @@ keyboard:
     xor si, si
 .poll:
     mov byte [CFG_STATES+si], 0
+    cmp si, 19
+    jb .active_binding
+    cmp byte [CFG_SAVE_ENABLED], 0
+    je .next_binding
+.active_binding:
     mov di, si
     shl di, 1
     xor ax, ax
@@ -157,6 +162,7 @@ keyboard:
     mov al, [CFG_BINDINGS+di+1]
     call read_binding
     or [CFG_STATES+si], al
+.next_binding:
     inc si
     cmp si, ACTION_COUNT
     jb .poll
