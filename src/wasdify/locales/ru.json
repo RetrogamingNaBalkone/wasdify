@@ -182,5 +182,8 @@
   "prototype_prepared": "Запуск прототипа: {path}",
   "prototype_closed": "Игра закрыта. Сохранения остаются в папке прототипа.",
   "prototype_log": "Журнал запуска и ошибок: {path}",
-  "prototype_duration": "Длительность операции: {seconds} с."
+  "prototype_duration": "Длительность операции: {seconds} с.",
+  "prototype_temp_blocked": "ОСТАЛСЯ .TMP. ПЕРЕНЕСИТЕ ЕГО ИЗ ПАПКИ",
+  "prototype_recovered": "ИГРА ЗАГРУЖЕНА ИЗ РЕЗЕРВНОЙ ЗАПИСИ",
+  "prototype_fatal": "ВОССТАНОВЛЕНИЕ ПРЕРВАНО\nПЕРЕЗАПУСТИТЕ ИГРУ И ЗАГРУЗИТЕ СЕЙВ\n\nENTER — ВЫЙТИ ИЗ ИГРЫ"
 }

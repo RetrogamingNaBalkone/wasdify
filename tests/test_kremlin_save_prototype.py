@@ -16,6 +16,7 @@ from tests.support import temporary_directory
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 try:
     import play_kremlin_save as prototype
+    import build_kremlin_save_native as native_builder
 finally:
     sys.path.pop(0)
 
@@ -26,6 +27,20 @@ def packet():
 
 
 class PrototypeFileTests(unittest.TestCase):
+    def test_native_schema_depends_on_state_layout_and_not_menu_text(self):
+        def schema(raw):
+            return next(line for line in raw.splitlines() if line.startswith(b'native_schema:'))
+
+        original = native_builder.tables()
+        messages = json.loads(files('wasdify').joinpath('data/kremlin_save_prototype_messages.json').read_text('utf-8'))
+        messages['ru']['saved'] += '!'
+        with patch.object(Path, 'read_text', return_value=json.dumps(messages)):
+            changed_text = native_builder.tables()
+        self.assertNotEqual(original, changed_text)
+        self.assertEqual(schema(original), schema(changed_text))
+        with patch.dict(native_builder.state.COMMON, {'marker': (0x1c, 'B')}):
+            self.assertNotEqual(schema(original), schema(native_builder.tables()))
+
     def test_attempt_counter_is_required(self):
         current = {**packet(), 'next_attempt': 4}
         self.assertEqual(prototype.decode(prototype.encode(current)), current)

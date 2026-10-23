@@ -44,6 +44,11 @@
 %define PANEL_LEFT 414
 %define PANEL_SHADE 416
 %define N_LEVEL 426
+%define N_VERIFY_SP 428
+%define N_VERIFY 430
+%define N_READ_STATUS 432       ; 0 valid, 1 missing, 2 invalid, 3 I/O failure
+%define N_SOURCE 434            ; 0 SAV, 1 PRV, 2 TMP
+%define N_NOTICE 436            ; 1 existing TMP blocks an exclusive write
 %define BASE_PTR 8192
 %define BASE_TYPE 9216
 %define PLACED 9728
@@ -73,6 +78,10 @@ db 'KRSNAT01'
 dw krs_native_frame, krs_native_early, krs_native_death
 dw native_capture, native_validate, native_restore, native_write_file, native_read_file
 db 'KRSABI01', ENG
+%ifdef KRS_NATIVE_TEST
+db 'KRSFAIL1'
+dw native_available, native_read_candidate, native_rebuild, native_fatal, native_try_validate
+%endif
 
 ; Transport calls must not destroy the snapshot/world selectors or loop state.
 native_io:
@@ -101,6 +110,8 @@ native_segments:
 ; Error escape always returns to the top-level gate, with the original stack.
 ; Once native destruction starts, never resume a partially restored world.
 native_fail:
+    cmp word [N_VERIFY], 1
+    je native_invalid_candidate
     mov word [N_ERROR], 1
     cmp word [N_MUTATING], 0
     jne native_fatal
@@ -109,6 +120,9 @@ native_fail:
     cmp word [N_PENDING], 1
     jne .message
     mov si, MESSAGE(save_failed)
+    cmp word [N_NOTICE], 1
+    jne .message
+    mov si, MESSAGE(temp_blocked)
 .message:
     call native_message
     call native_clear_input
@@ -121,13 +135,37 @@ native_fail:
     stc
     ret
 native_fatal:
-    mov si, MESSAGE(restart)
+    call native_clear_input
+    mov si, MESSAGE(fatal)
     call native_dialog
+    mov word [N_MENU], 2
+.press:
+    cmp byte [ss:GLOBAL(0x2171)], 3  ; a fresh Enter press, then release
+    jne .press
+.release:
+    cmp byte [ss:GLOBAL(0x2171)], 2
+    jne .release
+    mov word [N_MENU], 0
     ; Protected INT 21h exit is provided by the game's DPMI host. No return to
     ; a caller with cached pointers into the destroyed world is permitted.
     mov ax, 0x4c01
     int 0x21
     jmp $
+
+; Check a disk candidate without reporting success or unwinding the frame.
+; Only used before world mutation; native_fail returns to this local boundary.
+native_try_validate:
+    mov [N_VERIFY_SP], sp
+    mov word [N_VERIFY], 1
+    call native_validate
+    mov word [N_VERIFY], 0
+    clc
+    ret
+native_invalid_candidate:
+    mov word [N_VERIFY], 0
+    mov sp, [N_VERIFY_SP]
+    stc
+    ret
 
 native_clear_input:
     pushad
@@ -431,6 +469,8 @@ krs_native_early:
     mov word [N_MUTATING], 0
     mov word [N_PENDING], 0
     mov word [N_PAUSING], 0
+    mov word [N_VERIFY], 0
+    mov word [N_NOTICE], 0
     mov word [N_BOUND+2], 0
     mov word [N_ENABLED], 0
     mov word [N_LEVEL], 0
@@ -475,6 +515,7 @@ krs_native_frame:
     mov word [N_MUTATING], 0
     mov word [N_PENDING], 0
     mov word [N_PAUSING], 0
+    mov word [N_NOTICE], 0
     cmp word [N_ENABLED], 1
     jne .done
     call native_segments
@@ -558,6 +599,9 @@ krs_native_frame:
     call native_validate
     call native_restore
     mov si, MESSAGE(loaded)
+    cmp word [N_SOURCE], 0
+    je .finish
+    mov si, MESSAGE(recovered)
 .finish:
     call native_message
     call native_clear_input
@@ -576,6 +620,7 @@ krs_native_death:
     mov word [N_MUTATING], 0
     mov word [N_PENDING], 2
     mov word [N_PAUSING], 0 ; outer death trampoline owns timer rebasing
+    mov word [N_NOTICE], 0
     call native_available
     jc .done
     call native_choice
@@ -586,6 +631,10 @@ krs_native_death:
     call native_validate
     call native_restore
     mov si, MESSAGE(loaded)
+    cmp word [N_SOURCE], 0
+    je .loaded
+    mov si, MESSAGE(recovered)
+.loaded:
     call native_message
     mov word [N_MUTATING], 0
     mov word [N_ACTION], 2
@@ -611,6 +660,10 @@ native_rebuild:
     call krs_world_dispatch
     cmp word [120], 0
     jne native_fail
+%ifdef KRS_NATIVE_TEST
+    cmp word [438], 1          ; test-only failure after native reconstruction
+    je native_fail
+%endif
     call native_segments
     call native_bind
     mov eax, [ss:GLOBAL(0x266a)]
@@ -2332,11 +2385,17 @@ native_path:
     ret
 
 native_available:
+    mov word [N_SOURCE], 0
     mov si, native_save_name
-    call native_read_file
+    call native_read_candidate
     jnc .found
+    inc word [N_SOURCE]
     mov si, native_previous_name
-    call native_read_file
+    call native_read_candidate
+    jnc .found
+    inc word [N_SOURCE]
+    mov si, native_temp_name
+    call native_read_candidate
     jc .missing
 .found:
     mov word [144], 1
@@ -2347,12 +2406,44 @@ native_available:
     stc
     ret
 
+native_read_candidate:
+    call native_read_file
+    jc .done
+    ; Early menu has no world. Full semantic validation runs at the first
+    ; bound frame, before destruction, and can then fall back to PRV/TMP.
+    cmp word [N_BOUND+2], 0
+    je .valid
+    call native_try_validate
+    jnc .valid
+    mov word [N_READ_STATUS], 2
+    stc
+    ret
+.valid:
+    clc
+.done:
+    ret
+
+; A transient close failure must still fail the operation, but make one
+; cleanup attempt before another candidate can replace HANDLE.
+native_close:
+    mov ax, 7
+    call native_io
+    je .done
+    push word [ERROR]
+    mov ax, 7
+    call native_io
+    pop word [ERROR]
+    cmp word [ERROR], 0
+.done:
+    ret
+
 native_read_file:
+    mov word [N_READ_STATUS], 3
     call native_segments
     call native_path_a
     mov ax, 3
     call native_io
-    jne .bad
+    jne .open_bad
     mov ax, [RESULT]
     mov [HANDLE], ax
     mov word [LENGTH], H_SIZE
@@ -2360,7 +2451,7 @@ native_read_file:
     call native_io
     jne .close_bad
     cmp word [RESULT], H_SIZE
-    jne .close_bad
+    jne .invalid_close
     xor di, di
     mov si, BUFFER
     mov cx, H_SIZE
@@ -2372,9 +2463,9 @@ native_read_file:
     loop .header
     mov ax, [fs:H_LENGTH]
     cmp ax, RECORD_START
-    jb .close_bad
+    jb .invalid_close
     cmp ax, 65000
-    ja .close_bad
+    ja .invalid_close
     mov [N_LENGTH], ax
     mov [N_TRANSFER], di
 .block:
@@ -2391,7 +2482,7 @@ native_read_file:
     jne .close_bad
     mov ax, [RESULT]
     cmp ax, [LENGTH]
-    jne .close_bad
+    jne .invalid_close
     mov cx, ax
     mov si, BUFFER
     mov di, [N_TRANSFER]
@@ -2409,26 +2500,41 @@ native_read_file:
     call native_io
     jne .close_bad
     cmp word [RESULT], 0
-    jne .close_bad
-    mov ax, 7
-    call native_io
+    jne .invalid_close
+    call native_close
     jne .bad
     call native_basic_validate
+    jc .invalid
+    mov word [N_READ_STATUS], 0
+    clc
     ret
+.open_bad:
+    cmp word [ERROR], 2
+    jne .bad
+    mov word [N_READ_STATUS], 1
+    jmp .bad
+.invalid_close:
+    mov word [N_READ_STATUS], 2
 .close_bad:
-    mov ax, 7
-    call native_io
+    call native_close
+    je .bad
+    mov word [N_READ_STATUS], 3
 .bad:
+    stc
+    ret
+.invalid:
+    mov word [N_READ_STATUS], 2
     stc
     ret
 
 native_write_file:
     mov word [N_OWNED_TMP], 0
+    mov word [N_NOTICE], 0
     mov si, native_temp_name
     call native_path_a
     mov ax, 2
     call native_io
-    jne .bad
+    jne .create_bad
     mov word [N_OWNED_TMP], 1
     mov ax, [RESULT]
     mov [HANDLE], ax
@@ -2465,23 +2571,34 @@ native_write_file:
     mov ax, 6
     call native_io
     jne .close_bad
-    mov ax, 7
-    call native_io
+    call native_close
     jne .cleanup
     mov eax, [fs:H_CRC]
     mov [60], eax
     mov si, native_temp_name
-    call native_read_file
+    call native_read_candidate
     jc .cleanup
     mov eax, [fs:H_CRC]
     cmp eax, [60]
     jne .cleanup
+    ; From here TMP is a verified recovery record, including on a first save.
+    ; Never delete it on rotation/install failure or a process interruption.
+    mov word [N_OWNED_TMP], 0
     ; Only retire PRV when both TMP and the old SAV have been verified.
     mov si, native_save_name
-    call native_read_file
+    call native_read_candidate
     jnc .rotate
     ; Read errors other than a missing SAV must preserve every old generation.
-    cmp word [ERROR], 2
+    cmp word [N_READ_STATUS], 1
+    je .install
+    cmp word [N_READ_STATUS], 2
+    jne .cleanup
+    ; Invalid SAV is not a verified generation. Preserve PRV, retire only
+    ; the unusable SAV after the replacement TMP has passed validation.
+    mov si, native_save_name
+    call native_path_a
+    mov ax, 9
+    call native_io
     jne .cleanup
     jmp .install
 .rotate:
@@ -2518,8 +2635,7 @@ native_write_file:
     clc
     ret
 .close_bad:
-    mov ax, 7
-    call native_io
+    call native_close
 .cleanup:
     cmp word [N_OWNED_TMP], 0
     je .bad
@@ -2531,6 +2647,11 @@ native_write_file:
 .bad:
     stc
     ret
+.create_bad:
+    cmp word [ERROR], 80
+    jne .bad
+    mov word [N_NOTICE], 1
+    jmp .bad
 
 native_resource_check:
     cmp word [N_RES_OK], 1

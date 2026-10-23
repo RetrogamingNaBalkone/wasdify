@@ -182,5 +182,8 @@
   "prototype_prepared": "Start the prototype: {path}",
   "prototype_closed": "Game closed. Saved games remain in the prototype directory.",
   "prototype_log": "Session and error log: {path}",
-  "prototype_duration": "Operation duration: {seconds} s."
+  "prototype_duration": "Operation duration: {seconds} s.",
+  "prototype_temp_blocked": "A .TMP EXISTS. MOVE IT OUT TO SAVE",
+  "prototype_recovered": "GAME LOADED FROM A RECOVERY RECORD",
+  "prototype_fatal": "RESTORE INTERRUPTED\nRESTART THE GAME AND LOAD YOUR SAVE\n\nENTER — EXIT THE GAME"
 }

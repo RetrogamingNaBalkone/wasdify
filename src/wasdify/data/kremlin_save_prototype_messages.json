@@ -11,7 +11,10 @@
     "loaded": "ИГРА ЗАГРУЖЕНА",
     "save_failed": "НЕ УДАЛОСЬ СОХРАНИТЬ ИГРУ",
     "load_failed": "НЕ УДАЛОСЬ ЗАГРУЗИТЬ ИГРУ",
-    "restart": "ЗАГРУЗИТЕ ПОСЛЕ ПЕРЕЗАПУСКА"
+    "restart": "ЗАГРУЗИТЕ ПОСЛЕ ПЕРЕЗАПУСКА",
+    "temp_blocked": "ОСТАЛСЯ .TMP. ПЕРЕНЕСИТЕ ЕГО ИЗ ПАПКИ",
+    "recovered": "ИГРА ЗАГРУЖЕНА ИЗ РЕЗЕРВНОЙ ЗАПИСИ",
+    "fatal": "ВОССТАНОВЛЕНИЕ ПРЕРВАНО\nПЕРЕЗАПУСТИТЕ ИГРУ И ЗАГРУЗИТЕ СЕЙВ\n\nENTER - ВЫЙТИ ИЗ ИГРЫ"
   },
   "en": {
     "cleared": "",
@@ -25,6 +28,9 @@
     "loaded": "GAME LOADED",
     "save_failed": "COULD NOT SAVE GAME",
     "load_failed": "COULD NOT LOAD GAME",
-    "restart": "LOAD AFTER RESTARTING THE GAME"
+    "restart": "LOAD AFTER RESTARTING THE GAME",
+    "temp_blocked": "A .TMP EXISTS. MOVE IT OUT TO SAVE",
+    "recovered": "GAME LOADED FROM A RECOVERY RECORD",
+    "fatal": "RESTORE INTERRUPTED\nRESTART THE GAME AND LOAD YOUR SAVE\n\nENTER - EXIT THE GAME"
   }
 }

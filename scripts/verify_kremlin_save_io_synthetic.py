@@ -41,7 +41,7 @@ class Machine:
                      13: struct.pack("<H", 0x8000)}[token]
             code[offset:offset + len(value)] = value
         self.u.mem_write(0x10000, bytes(code))
-        self.u.hook_add(UC_HOOK_CODE, self.observe)
+        self.code_hook = self.u.hook_add(UC_HOOK_CODE, self.observe)
         self.u.hook_add(UC_HOOK_INTR, self.interrupt)
         self.calls = []
         self.failure = None

@@ -41,6 +41,8 @@ class NativeMachine(Machine):
         self.failure_point = None
         self.operation_counts = {}
         self.terminated = False
+        self.fatal_ticks = 0
+        self.confirm_fatal = True
 
     def global_at(self, offset):
         return 0x30000 + self.shift + offset
@@ -63,6 +65,9 @@ class NativeMachine(Machine):
 
     def observe(self, u, address, size, data):
         super().observe(u, address, size, data)
+        if self.read16(0x200fe) == 2 and self.confirm_fatal:
+            self.fatal_ticks += 1
+            u.mem_write(self.global_at(0x2171), bytes((3 if self.fatal_ticks < 20 else 2,)))
         if address in (0x50500, 0x50900):
             sp = self.reg('SP')
             ip, cs = struct.unpack('<HH', u.mem_read(0x30000 + sp, 4))
@@ -70,7 +75,7 @@ class NativeMachine(Machine):
             self.set_reg('CS', cs)
             self.set_reg('IP', ip)
 
-    def invoke(self, name, *, expect_exit=False):
+    def invoke(self, name, *, expect_exit=False, max_instructions=3000000):
         for register, value in {'CS': 0x1000, 'DS': 0x2000, 'SS': 0x3000,
                 'ES': 0x7100, 'FS': 0x8000, 'GS': 0x7000, 'SP': 0xd000,
                 'BP': 0, 'EFLAGS': 0x202}.items():
@@ -78,7 +83,7 @@ class NativeMachine(Machine):
         self.write16(0x3d000, 0xff00)
         self.write16(0x200c0, 0xd000)
         self.write16(0x200f2, 0)
-        self.u.emu_start(0x10000 + self.entries[name], 0x1ff00, count=3000000)
+        self.u.emu_start(0x10000 + self.entries[name], 0x1ff00, count=max_instructions)
         if expect_exit:
             assert self.terminated, name
             return False
