@@ -89,7 +89,7 @@ SETUP.EXE
             wait_for(lambda: title in text(api))
             def check_selection(row):
                 raw = api.get('memory/0xb8000/4000')
-                for y in range(3, 22):
+                for y in range(3, 24):
                     attrs = raw[y * 160 + 5:y * 160 + 157:2]
                     assert attrs == bytes([0x1f if y == row else 7]) * 76, (lang, row, y, attrs)
                 assert title in text(api).splitlines()[1]
@@ -106,8 +106,12 @@ SETUP.EXE
                 bios_key(api, 0x50)
                 check_selection(row)
             assert ('джойстик' if lang == 'ru' else 'joystick') in text(api).splitlines()[21].lower()
+            for row in (22, 23):
+                bios_key(api, 0x50)
+                check_selection(row)
+            assert ('загрузить игру' if lang == 'ru' else 'load game') in text(api).splitlines()[23].lower()
             bios_key(api, 0x4d)
-            assert text(api).splitlines()[22].rstrip().endswith('2')
+            assert text(api).splitlines()[0].rstrip().endswith('2')
             bios_key(api, 1, 27)
             check_selection(5)
             bios_key(api, 0x50)

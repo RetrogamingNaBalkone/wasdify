@@ -258,7 +258,7 @@ draw:
 .row:
     mov dx, bp
     mov dh, dl
-    add dh, 3                    ; rows 3..21, all 19 actions fit
+    add dh, 3                    ; rows 3..23, all 21 actions fit above help
     mov dl, 2
     call set_cursor
     mov si, ui_blank
@@ -318,11 +318,11 @@ draw:
     mov byte [es:di], 0x1f        ; bright white on blue, entire menu row
     add di, 2
     loop .highlight
-    mov dx, 0x1702
+    mov dx, 0x1802
     call set_cursor
     mov si, ui_help
     call puts
-    mov dx, 0x1605
+    mov dx, 0x0005
     call set_cursor
     cmp byte [CFG_WORK+36], 0
     je .done

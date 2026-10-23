@@ -1,5 +1,8 @@
 # WASDify
 
+`save-load` is available for RUS/ENG levels 1–3; explicitly select
+`weapon-selection-fix`. [Installation, compatibility and pending acceptance](docs/games/dungeons-of-kremlin/save-load-integration.md) (Russian).
+
 `weapon-selection-fix` for Dungeons of Kremlin removes an unsafe weapon-pointer
 read: [Ghidra analysis and validation limits](docs/games/dungeons-of-kremlin/weapons.md).
 

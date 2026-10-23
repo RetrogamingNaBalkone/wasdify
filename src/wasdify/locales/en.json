@@ -185,5 +185,7 @@
   "prototype_duration": "Operation duration: {seconds} s.",
   "prototype_temp_blocked": "A .TMP EXISTS. MOVE IT OUT TO SAVE",
   "prototype_recovered": "GAME LOADED FROM A RECOVERY RECORD",
-  "prototype_fatal": "RESTORE INTERRUPTED\nRESTART THE GAME AND LOAD YOUR SAVE\n\nENTER — EXIT THE GAME"
+  "prototype_fatal": "RESTORE INTERRUPTED\nRESTART THE GAME AND LOAD YOUR SAVE\n\nENTER — EXIT THE GAME",
+  "dos_load": "Load game",
+  "dos_save_game": "Save game"
 }

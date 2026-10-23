@@ -22,6 +22,8 @@ ACTIONS = (
     ("pause", 0x19, 0, True, 0),
     ("menu", 1, 0, True, 0x4000),
     ("joystick", 0x24, 0, True, 0),
+    ("save", 0x3f, 0, True, 0),
+    ("load", 0x43, 0, True, 0),
 )
 # Native IRQ normalizes E0; the original reader sign-extends an 8-bit index.
 # Unsupported holes, PrintScreen and Pause's multi-byte sequences are excluded.

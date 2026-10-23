@@ -74,6 +74,8 @@
 ; Then trusted-schema scalars, relative stopwatches, references, door state,
 ; and event-count*(callback-ID:u16, remaining:u32, interval:u32).
 snapshot_selector: dw 0xffff
+db 'KRSCFG01'
+native_config_selector: dw 0
 db 'KRSNAT01'
 dw krs_native_frame, krs_native_early, krs_native_death
 dw native_capture, native_validate, native_restore, native_write_file, native_read_file
@@ -549,6 +551,28 @@ krs_native_frame:
     mov bx, [40]
     cmp word [ss:bx-LOCAL_STAGE], 6
     jne .done
+    mov ax, [cs:native_config_selector]
+    test ax, ax
+    jz .physical_keys
+    push es
+    mov es, ax
+    mov al, [es:80+19]               ; configuration's edge-triggered save/load
+    mov ah, [es:80+20]
+    mov byte [es:80+19], 0
+    mov byte [es:80+20], 0
+    pop es
+    test al, al
+    jz .configured_load
+    test ah, ah
+    jnz .done                       ; simultaneous requests cancel each other
+    mov word [N_PENDING], 1
+    jmp .clear
+.configured_load:
+    test ah, ah
+    jz .done
+    mov word [N_PENDING], 2
+    jmp .clear
+.physical_keys:
     mov al, [ss:GLOBAL(0x2194)]        ; F5 release
     mov ah, [ss:GLOBAL(0x2198)]        ; F9 release
     cmp ax, 0x0202

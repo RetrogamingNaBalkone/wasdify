@@ -1,5 +1,8 @@
 # WASDify
 
+Для уровней 1–3 RUS/ENG доступен `save-load` с явной зависимостью
+`weapon-selection-fix`: [установка, совместимость и оставшаяся приёмка](docs/games/dungeons-of-kremlin/save-load-integration.md).
+
 Для «Подземелий Кремля» добавлен `weapon-selection-fix`:
 [анализ выбора оружия в Ghidra и границы проверки](docs/games/dungeons-of-kremlin/weapons.md).
 

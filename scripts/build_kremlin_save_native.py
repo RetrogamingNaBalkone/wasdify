@@ -1,7 +1,7 @@
-"""Reproduce the experimental RUS/ENG autonomous NASM payload for levels 1-3.
+"""Reproduce the RUS/ENG autonomous NASM payload for levels 1-3.
 
 No reference game bytes are needed to assemble. This is a development builder,
-not runtime code or a registered WASDify patch.
+not runtime code. The registered patch loads the packaged byte resource.
 """
 import argparse
 import hashlib
@@ -89,8 +89,18 @@ if __name__ == '__main__':
     parser.add_argument('--nasm', type=Path, default=ROOT / 'build/tools/nasm-2.16.03/nasm.exe')
     parser.add_argument('--output', type=Path)
     parser.add_argument('--tables', action='store_true')
+    parser.add_argument('--refresh', action='store_true', help='Refresh packaged RU/EN runtime bytes')
     parser.add_argument('--language', choices=('ru', 'en'), default='ru')
     args = parser.parse_args()
+    if args.refresh:
+        target = ROOT / 'src/wasdify/data/kremlin_save_native.json'
+        packaged = json.loads(target.read_text('ascii'))
+        for language in ('ru', 'en'):
+            output = ROOT / f'build/save-research/native-{language}.bin'
+            build(args.nasm, output, language=language)
+            packaged['runtime'][language] = output.read_bytes().hex()
+        target.write_text(json.dumps(packaged, indent=2) + '\n', encoding='ascii')
+        raise SystemExit(0)
     if args.tables:
         (PATCHES / 'kremlin_save_native_tables.inc').write_bytes(tables())
     output = args.output or ROOT / f'build/save-research/native-{args.language}.bin'

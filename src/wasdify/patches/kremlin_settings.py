@@ -60,7 +60,7 @@ def _context(data, profile, segments):
     return context, matches[0][0], matches[0][1]+15
 
 
-def _install(data):
+def _install(data, payloads=None):
     (profile, located), segments = _profile(data)
     context, main, startup = _context(data, profile, segments)
     ne = struct.unpack_from("<I", data, 60)[0]
@@ -85,7 +85,7 @@ def _install(data):
         wasd.fail()
     if struct.unpack_from("<I", data, ne+44)[0] != table_end+26 or _u16(data, ne+32) != 11:
         wasd.fail()
-    payloads = resources()
+    payloads = resources() if payloads is None else payloads
     code = bytes.fromhex(payloads["runtime"][profile["language"]])
     config = bytes.fromhex(payloads["data"])
     exports = struct.unpack_from("<8H", code, 8)
@@ -235,7 +235,12 @@ def restore_base(data):
         base[ne:ne+len(header)] = header
         baseline = bytes(base)
         if _install(baseline) != data:
-            wasd.fail()
+            # The pre-save 19-action version is a trusted WASDify artifact.
+            # Validate it by complete reproduction before permitting migration.
+            previous = json.loads(files("wasdify").joinpath(
+                "data/kremlin_settings_legacy.json").read_text("ascii"))
+            if _install(baseline, previous) != data:
+                wasd.fail()
         return baseline
     except (KeyError, IndexError, TypeError, ValueError, struct.error, OverflowError, RecursionError) as error:
         raise WasdifyError("unsupported_executable") from error

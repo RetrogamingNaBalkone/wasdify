@@ -120,14 +120,14 @@
               "language": "en",
               "role": "main",
               "destination": "SETUP.EXE",
-              "sha256": "b7493216b1408c46e432717bb0fec1900edc452b9d8445a4e42b48fbebb8d5a8"
+              "sha256": "7fe63211205a84b744b7cbf173834cf254ac27beca62a6be3d13e17f66313264"
             },
             {
               "source": "dungeons-of-kremlin/ru/SETUP.EXE",
               "language": "ru",
               "role": "main",
               "destination": "SETUP.EXE",
-              "sha256": "29fac924b19bd2e6461cefd65694e3c82d31ebb94d5cbdeacb4e9716208291ac"
+              "sha256": "68e6a191fc6caa6ff8e64520a4365ad8982dea95bc082f2e6abd4f4016a77f0b"
             }
           ]
         },
@@ -162,6 +162,25 @@
             "main"
           ],
           "dependencies": [],
+          "conflicts": [],
+          "implemented": true
+        },
+        {
+          "id": "save-load",
+          "title": {
+            "ru": "Сохранение и загрузка",
+            "en": "Save and load"
+          },
+          "description": {
+            "ru": "F5 — сохранить, F9 — загрузить. Отдельное продолжение для каждого из трёх уровней RUS/ENG. Требует явного выбора исправления выбора оружия. С game-settings клавиши задаются в DOS SETUP/INI. Ручная приёмка ещё не завершена.",
+            "en": "F5 saves and F9 loads a separate continuation for each of the three RUS/ENG levels. Explicitly select the weapon selection fix. With game-settings, configure keys in DOS SETUP/INI. Manual acceptance is still pending."
+          },
+          "roles": [
+            "main"
+          ],
+          "dependencies": [
+            "weapon-selection-fix"
+          ],
           "conflicts": [],
           "implemented": true
         }

@@ -55,8 +55,8 @@ def ui(work, lang):
     main = ("video", "mouse", "keys", "defaults", "save", "exit")
     text += "main_labels: dw " + ",".join("label_"+k for k in main) + "\n"
     text += "".join(db("label_"+k, (tr(k)+":").ljust(27) if k in ("video", "mouse") else tr(k)) for k in main)
-    text += "action_labels: dw " + ",".join("label_"+a[0] for a in spec.ACTIONS) + "\n"
-    text += "".join(db("label_"+a[0], tr(a[0]).ljust(27)) for a in spec.ACTIONS)
+    text += "action_labels: dw " + ",".join("action_label_"+a[0] for a in spec.ACTIONS) + "\n"
+    text += "".join(db("action_label_"+a[0], tr("save_game" if a[0] == "save" else a[0]).ljust(27)) for a in spec.ACTIONS)
     modes = ("auto", "vga", "640x400", "640x480", "800x600", "1024x768")
     text += "mode_labels: dw " + ",".join("mode_"+str(i) for i in range(6)) + "\n"
     text += "".join(db("mode_"+str(i), tr(k) if i < 2 else k) for i, k in enumerate(modes))

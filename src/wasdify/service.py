@@ -43,8 +43,9 @@ class Service:
             language = None
             if matches[0] == "dungeons-of-kremlin":
                 from .patches.kremlin_settings import detect_language
+                from .patches.kremlin_save_native import installed, restore_base
                 try:
-                    language = detect_language(data)
+                    language = detect_language(restore_base(data) if installed(data) else data)
                 except WasdifyError:
                     pass
             return Detection(digest, len(data), matches[0], language=language, method="signature")
@@ -84,7 +85,19 @@ class Service:
                 issues.append(error.issue)
             definitions = {p.id: p for p in game.patches}
             grouped = None
-            if "game-settings" in ordered:
+            from .patches import kremlin_save_native as saves
+            if (game.id == "dungeons-of-kremlin" and ordered
+                    and ("save-load" in ordered or saves.present(data["main"]))
+                    and isinstance(self.implementations.get((game.id, "save-load")), saves.SaveLoad)
+                    and all(definitions[p].implemented and (game.id,p) in self.implementations for p in ordered)):
+                try:
+                    grouped = saves.analyze_selection(data["main"], ordered, self.implementations, game.id)
+                except WasdifyError as error:
+                    issues.append(error.issue)
+                    ordered_to_analyze = ()
+                else:
+                    ordered_to_analyze = ordered
+            elif "game-settings" in ordered:
                 from .patches.kremlin_settings import GameSettings, analyze_selection
                 if (isinstance(self.implementations.get((game.id, "game-settings")), GameSettings)
                         and all(definitions[p].implemented and (game.id,p) in self.implementations for p in ordered)):

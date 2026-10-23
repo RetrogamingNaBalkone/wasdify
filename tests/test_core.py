@@ -129,13 +129,16 @@ class EditTests(unittest.TestCase):
 
 
 class CatalogTests(unittest.TestCase):
-    def test_packaged_catalog_has_seven_real_patches(self):
+    def test_packaged_catalog_has_eight_real_patches(self):
         value = load_catalog().game("dungeons-of-kremlin")
         self.assertEqual(len(value.versions), 2)
-        expected = {"wasd", "resolution-640x400", "render-optimization", "numeric-hud", "font-scaling", "game-settings", "weapon-selection-fix"}
+        expected = {"wasd", "resolution-640x400", "render-optimization", "numeric-hud", "font-scaling", "game-settings", "weapon-selection-fix", "save-load"}
         self.assertEqual({p.id for p in value.patches}, expected)
         self.assertEqual({p.id for p in value.patches if p.implemented}, expected)
-        self.assertTrue(all(not p.dependencies and not p.conflicts for p in value.patches if p.id != "game-settings"))
+        self.assertTrue(all(not p.dependencies and not p.conflicts for p in value.patches
+                            if p.id not in ("game-settings", "save-load")))
+        self.assertEqual(next(p.dependencies for p in value.patches if p.id=="save-load"),
+                         ("weapon-selection-fix",))
         self.assertEqual(next(p.dependencies for p in value.patches if p.id=="game-settings"),
                          ("wasd", "resolution-640x400"))
 
