@@ -251,8 +251,13 @@ krs_death_trampoline:
     push gs
     mov ax, [cs:data_selector]
     mov ds, ax
+%ifdef KRS_AUTONOMOUS
+    cmp word [194], 1         ; native adapter enabled for this level
+    jne .vanilla
+%else
     cmp word [144], 1
     jne .vanilla
+%endif
     mov bp, sp
     cmp word [ss:bp+44], 0x1005
     jne .vanilla
@@ -262,6 +267,16 @@ krs_death_trampoline:
     les bx, [ss:bp+48]
     cmp word [es:bx+0x5e], 0
     jne .vanilla
+%ifdef KRS_AUTONOMOUS
+    ; Death wins over a deferred F5/F9, including when there is no save yet.
+    ; A new attempt must never perform a request issued by the old hero.
+    mov word [200], 0         ; N_START
+    mov word [228], 0         ; N_PENDING
+    mov byte [ss:0x2194], 0
+    mov byte [ss:0x2198], 0
+    cmp word [144], 1
+    jne .vanilla
+%endif
     mov ax, [ss:bp+16]
     mov [40], ax
     mov ax, [ss:bp+6]
@@ -272,6 +287,11 @@ krs_death_trampoline:
     mov word [148], 0
     mov word [44], 2
     mov word [146], 1
+%ifdef KRS_AUTONOMOUS
+    cld
+    call krs_native_death
+    mov word [46], 1
+%endif
 .hold:
     cmp word [116], 0
     je .release
@@ -325,9 +345,15 @@ krs_early_trampoline:
     push gs
     mov ax, [cs:data_selector]
     mov ds, ax
+%ifndef KRS_AUTONOMOUS
     cmp word [156], 1
     jne .native
+%endif
     mov bp, sp
+%ifdef KRS_AUTONOMOUS
+    mov eax, [ss:bp+44]
+    mov [424], eax
+%endif
     cmp word [ss:bp+44], 0x0c70
     jne .native
     mov ax, [cs:main_selector]
@@ -341,6 +367,11 @@ krs_early_trampoline:
     mov [52], eax
     mov word [46], 0
     mov word [44], 3
+%ifdef KRS_AUTONOMOUS
+    cld
+    call krs_native_early
+    mov word [46], 1
+%endif
 .hold:
     cmp word [116], 0
     je .release

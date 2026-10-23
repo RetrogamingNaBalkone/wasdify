@@ -37,7 +37,8 @@ class Machine:
                      9: struct.pack("<HH", 0x800, 0x5000),
                      10: struct.pack("<HH", 0x900, 0x5000),
                      11: struct.pack("<HH", 0xa00, 0x5000),
-                     12: struct.pack("<HH", 0xb00, 0x5000)}[token]
+                     12: struct.pack("<HH", 0xb00, 0x5000),
+                     13: struct.pack("<H", 0x8000)}[token]
             code[offset:offset + len(value)] = value
         self.u.mem_write(0x10000, bytes(code))
         self.u.hook_add(UC_HOOK_CODE, self.observe)

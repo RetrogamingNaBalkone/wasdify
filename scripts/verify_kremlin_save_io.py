@@ -57,7 +57,9 @@ def validate_extra_hook(source, segment, offset, expected):
 def inject(source, payload, language, level=1, *, data_size=8192, pause_on_start=False):
     """Research-only NE installation, checked against exact versions AND code."""
     profile = PROFILES[language]
-    if data_size not in (8192, 12288):
+    autonomous = payload.count(b"KRSNAT01") == 1
+    extra = 24 if autonomous else 16
+    if data_size not in ((65536,) if autonomous else (8192, 12288)):
         raise ValueError("Unexpected research data-segment size")
     if hashlib.sha256(source).hexdigest() != profile[4]:
         raise ValueError("Unexpected reference version")
@@ -73,7 +75,7 @@ def inject(source, payload, language, level=1, *, data_size=8192, pause_on_start
     header_end = table_end + len(expected_tail)
     tail_end = min(s.start for s in all_segments)
     tail = source[table_end:header_end]
-    if tail != expected_tail or header_end + 16 > tail_end or any(source[header_end:header_end + 16]):
+    if tail != expected_tail or header_end + extra > tail_end or any(source[header_end:header_end + extra]):
         raise ValueError("No validated space for NE segment entries")
     owner = next(s for s in all_segments if s.index == profile[2])
     site = profile[3]
@@ -112,6 +114,8 @@ def inject(source, payload, language, level=1, *, data_size=8192, pause_on_start
             if source[owner.start + clock_offset:owner.start + clock_offset + len(expected)] != expected:
                 raise ValueError("Native PIT-clock context differs")
             code_records.append((3, 0, offset, owner.index, clock_offset))
+        elif token == 13 and autonomous:
+            code_records.append((2, 0, offset, count + 3, 0))
         elif token in (4, 5, 6, 7, 8, 9, 10, 11, 12) and language == "ru":
             segment_index, native_offset, expected = {
                 4: (14, 0x2368, "8cd09045558bec1e8ed883ec105657688300"),
@@ -149,12 +153,12 @@ def inject(source, payload, language, level=1, *, data_size=8192, pause_on_start
                                        for s in all_segments if s != owner):
         raise ValueError("No space for the hook relocation")
     result[owner.end:end + 8] = records(owner.records + ((3, 0, site + 1, code_index, entry),))
-    result[table_end + 16:header_end + 16] = tail
-    result[table_end:table_end + 16] = bytes(16)
-    struct.pack_into("<H", result, ne + 28, count + 2)
+    result[table_end + extra:header_end + extra] = tail
+    result[table_end:table_end + extra] = bytes(extra)
+    struct.pack_into("<H", result, ne + 28, count + extra // 8)
     for offset in (4, 36, 38, 40, 42):
-        struct.pack_into("<H", result, ne + offset, u16(ne + offset) + 16)
-    struct.pack_into("<I", result, ne + 44, struct.unpack_from("<I", source, ne + 44)[0] + 16)
+        struct.pack_into("<H", result, ne + offset, u16(ne + offset) + extra)
+    struct.pack_into("<I", result, ne + 44, struct.unpack_from("<I", source, ne + 44)[0] + extra)
     live_manifest = payload.find(b"KRSLIVE1")
     if pause_on_start:
         if language != "ru" or live_manifest < 0:
@@ -205,7 +209,12 @@ def inject(source, payload, language, level=1, *, data_size=8192, pause_on_start
     if live_manifest >= 0:
         struct.pack_into("<H", result, data_start + 152, 1)  # validated live-reload ABI
     struct.pack_into("<4H", result, table_end, code_start >> 9, len(payload), 0x0d50, len(payload))
-    struct.pack_into("<4H", result, table_end + 8, data_start >> 9, data_size, 0x0c51, data_size)
+    struct.pack_into("<4H", result, table_end + 8, data_start >> 9, data_size & 0xffff, 0x0c51, data_size & 0xffff)
+    if autonomous:
+        result.extend(bytes(-len(result) % 512))
+        snapshot_start = len(result)
+        result.extend(bytes(65536))
+        struct.pack_into("<4H", result, table_end + 16, snapshot_start >> 9, 0, 0x0c51, 0)
     return bytes(result)
 
 

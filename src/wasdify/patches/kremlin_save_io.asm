@@ -45,6 +45,28 @@ trampoline:
     push gs
     mov ax, [cs:data_selector]
     mov ds, ax
+%ifdef KRS_AUTONOMOUS
+    mov bp, sp
+    mov eax, [ss:bp+44]
+    mov [420], eax            ; caller diagnostics in development payload
+%ifdef KRS_NATIVE_OFFLINE_TEST
+    call krs_native_offline_input
+%endif
+    cmp word [ss:bp+44], 0x0d75
+    jne .resume
+    mov ax, [cs:main_selector]
+    cmp word [ss:bp+46], ax
+    jne .resume
+    cld
+    mov ax, [ss:bp+16]
+    mov [40], ax
+    call krs_native_frame
+%ifdef KRS_NATIVE_TEST
+    cmp word [REQUEST], 13
+    je .frame_request
+%endif
+    jmp .resume
+%endif
     cmp word [REQUEST], 0
     je .resume
     cmp word [REQUEST], 13
@@ -205,7 +227,11 @@ dispatch:
 .open:
     call copy_names
     jc .bad_path
+%ifdef KRS_AUTONOMOUS
+    mov word [R_EAX], 0x3d00  ; autonomous snapshots/resources need only read access
+%else
     mov word [R_EAX], 0x3d02  ; read/write; caller may use locking afterwards
+%endif
     jmp .dos
 .write:
     call transfer_length
@@ -421,5 +447,8 @@ dw death_resume, 9
 dw world_dialog, 10
 dw world_palette, 11
 dw early_resume, 12
+%endif
+%ifdef KRS_AUTONOMOUS
+dw snapshot_selector, 13
 %endif
 fixups_end:
