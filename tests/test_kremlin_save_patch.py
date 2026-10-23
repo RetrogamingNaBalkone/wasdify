@@ -46,6 +46,40 @@ def executable(language='ru'):
 
 
 class SavePatchTests(unittest.TestCase):
+    def test_previous_save_payload_upgrades_after_complete_validation(self):
+        previous = json.loads(saves.files('wasdify').joinpath(
+            'data/kremlin_save_native_legacy.json').read_text('ascii'))
+        for language in ('ru', 'en'):
+            with self.subTest(language=language), temporary_directory() as root:
+                service = Service()
+                raw = executable(language)
+                weapon = service.implementations[('dungeons-of-kremlin', SAVE[0])]
+                baseline = build_result({'main': raw}, weapon.analyze({'main': raw}).changes)['main']
+                for configured in (False, True):
+                    base = baseline
+                    if configured:
+                        changes = tuple(c for p in SETTINGS[:2]
+                                        for c in service.implementations[('dungeons-of-kremlin', p)].analyze({'main': base}).changes)
+                        base = settings._install(build_result({'main': base}, changes)['main'], save_enabled=True)
+                    old = saves._install(base, previous)
+                    self.assertEqual(saves.restore_base(old), base)
+                    analysis = saves.SaveLoad().analyze({'main': old})
+                    self.assertFalse(analysis.already_applied)
+                    self.assertEqual(build_result({'main': old}, analysis.changes)['main'], saves._install(base))
+                    path = root / 'game.exe'
+                    path.write_bytes(old)
+                    plan = service.plan({'main': path}, SAVE)
+                    self.assertTrue(plan.ready, plan.issues)
+                    self.assertTrue(plan.changes)
+                    result = service.apply(plan)
+                    self.assertEqual(result.status, 'applied')
+                    self.assertEqual(path.read_bytes(), saves._install(base))
+                    self.assertEqual(result.backup.read_bytes(), old)
+                    self.assertEqual(service.apply(service.plan({'main': path}, SAVE)).status, 'no_changes')
+                    damaged = bytearray(old)
+                    damaged[segments(old)[-3].start + 2000] ^= 1
+                    self.assertRaises(WasdifyError, saves.restore_base, bytes(damaged))
+
     def test_cli_and_service_produce_identical_bytes(self):
         from wasdify.cli import main
         with temporary_directory() as root:

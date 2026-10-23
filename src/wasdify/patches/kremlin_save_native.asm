@@ -100,9 +100,14 @@ native_io:
     cmp word [ERROR], 0
     ret
 
+; Disk/container operations are also used before the world is constructed.
+; The native destructor leaves GLOBAL(0x266a) pointing at freed storage after
+; Esc/completion. Even loading that stale selector with LGS can fault.
 native_segments:
     mov ax, [cs:snapshot_selector]
     mov fs, ax
+    cmp word [44], 3          ; pre-splash gate: the previous world is dead
+    je .done
     cmp dword [ss:GLOBAL(0x266a)], 0
     je .done
     lgs bp, [ss:GLOBAL(0x266a)]

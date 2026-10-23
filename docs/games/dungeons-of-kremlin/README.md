@@ -1,5 +1,8 @@
 # Подземелья Кремля / Dungeons of Kremlin
 
+Исправление [чёрного экрана при повторном выборе уровня](save-load-reentry.md).
+Закройте игру и повторно примените `save-load` обновлённым WASDify; сохранения совместимы.
+
 Для уровней 1–3 RUS и ENG реализован [патч сохранений F5/F9](save-load-integration.md)
 через WASDify, без Python-моста в игре. Явно выберите `weapon-selection-fix`.
 [Итоговые автоматические проверки завершены](save-load-release-checks.md).

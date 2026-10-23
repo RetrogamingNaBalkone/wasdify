@@ -36,6 +36,7 @@ def audit_entries(entries, original_hashes):
 SMOKE = r'''
 import json, sys
 from pathlib import Path
+from importlib.resources import files
 target, repo = map(Path, sys.argv[1:3])
 sys.path = [str(target)] + [p for p in sys.path if Path(p).resolve() not in (repo, repo/'src', repo/'scripts')]
 import wasdify
@@ -43,6 +44,7 @@ from wasdify.service import Service
 from wasdify.i18n import messages
 from wasdify.patches.kremlin_save_native import resources, restore_base
 from wasdify.patches.kremlin_settings import restore_base as restore_settings
+from wasdify.patches import kremlin_save_native as saves
 from wasdify.resources import read_resource
 assert Path(wasdify.__file__).is_relative_to(target)
 assert Path.cwd() == target
@@ -67,6 +69,10 @@ for lang in ('ru', 'en'):
                        if p.id == 'game-settings' for f in p.files
                        if f.language == lang and f.variant == 'save-load')
     assert (path.parent/'SETUP.EXE').read_bytes() == read_resource(declaration.source, declaration.sha256)
+    previous = json.loads(files('wasdify').joinpath('data/kremlin_save_native_legacy.json').read_text('ascii'))
+    path.write_bytes(saves._install(restore_base(path.read_bytes()), previous))
+    assert service.apply(service.plan({'main':path}, ('save-load',))).status == 'applied'
+    assert service.apply(service.plan({'main':path}, ('save-load',))).status == 'no_changes'
 for raw in resources()['runtime'].values():
     payload = bytes.fromhex(raw)
     assert b'KRSFAIL1' not in payload and b'KRSCFG01' in payload

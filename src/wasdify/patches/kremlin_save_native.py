@@ -73,14 +73,14 @@ def _hook_context(data, segment, offset, expected):
             cursor = settings._u16(data, segment.start+cursor)
 
 
-def _install(source):
+def _install(source, resource=None):
     try:
-        return _install_validated(source)
+        return _install_validated(source, resource)
     except (KeyError,IndexError,ValueError,TypeError,struct.error,OverflowError,StopIteration) as error:
         raise WasdifyError("unsupported_executable") from error
 
 
-def _install_validated(source):
+def _install_validated(source, resource=None):
     language = settings.detect_language(source)
     if language not in ("ru", "en"):
         fail()
@@ -88,7 +88,7 @@ def _install_validated(source):
     profile = next(p for p in profiles() if p["language"] == language)
     locate(source, profile, all_segments)
     by_index = {s.index:s for s in all_segments}
-    resource = resources()
+    resource = resources() if resource is None else resource
     bindings = {int(k):v for k,v in resource["bindings"][language].items()}
     payload = bytes.fromhex(resource["runtime"][language])
     context = json.loads(files("wasdify").joinpath("data/kremlin_settings_profiles.json").read_text("ascii"))[language]
@@ -218,8 +218,14 @@ def restore_base(data):
             occupied.update(span)
             base[offset:offset+len(original)] = original
         base = bytes(base)
-        if sha256(base).hexdigest() != meta["sha256"] or _install(base) != data:
+        if sha256(base).hexdigest() != meta["sha256"]:
             fail()
+        if _install(base) != data:
+            # Only a completely reproduced previous payload may be upgraded.
+            previous = json.loads(files("wasdify").joinpath(
+                "data/kremlin_save_native_legacy.json").read_text("ascii"))
+            if _install(base, previous) != data:
+                fail()
         return base
     except (KeyError,IndexError,ValueError,TypeError,struct.error,OverflowError,RecursionError) as error:
         raise WasdifyError("unsupported_executable") from error
@@ -229,8 +235,8 @@ class SaveLoad:
     def analyze(self, targets: Mapping[str,bytes]) -> PatchAnalysis:
         data = targets["main"]
         if installed(data):
-            restore_base(data)
-            return PatchAnalysis(already_applied=True)
+            changes = _diff(data, _install(restore_base(data)))
+            return PatchAnalysis(changes=changes, already_applied=not changes)
         return PatchAnalysis(changes=_diff(data,_install(data)))
 
 

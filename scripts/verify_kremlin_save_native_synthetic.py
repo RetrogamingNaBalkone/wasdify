@@ -3,6 +3,7 @@ import json
 from pathlib import Path
 import struct
 from zlib import crc32
+from unicorn import UC_HOOK_MEM_READ
 
 from build_kremlin_save_native import build, ROOT
 from build_kremlin_save_native import layout_fields
@@ -114,6 +115,26 @@ def run(payload, language='ru', level=1):
     assert checksum == crc32(wire)
     assert m.invoke('write')
     assert bytes(m.files[sav]) == raw
+    # A level destructor may leave a nonzero pointer to a freed selector.
+    # Disk reads, CRC and container validation must not even read that global
+    # before a fresh world is bound, with missing, corrupt or valid saves.
+    for candidate in (None, b'broken', raw):
+        trial = machine()
+        trial.write16(0x2002c, 3)  # pre-splash gate, including repeated selection
+        trial.write16(0x200c6, 0)  # N_BOUND selector: early menu has no live world
+        trial.u.mem_write(trial.global_at(0x266a), b'\xff' * 4)
+        if candidate is not None:
+            trial.files[sav] = bytearray(candidate)
+        reads = []
+        pointer = trial.global_at(0x266a)
+        trial.u.hook_add(UC_HOOK_MEM_READ,
+                        lambda u, access, address, size, value, data: reads.append(address),
+                        begin=pointer, end=pointer + 3)
+        trial.set_reg('SI', payload.index((b'KRN1' if language == 'ru' else b'KEN1') + b'.SAV\0'))
+        assert trial.invoke('read') == (candidate == raw)
+        assert not reads, 'disk validation touched the destroyed world'
+        if candidate == raw:
+            assert trial.snapshot() == raw
     # A second write preserves the verified old generation, then replaces SAV.
     m.write16(0x7105e, 45)
     assert m.invoke('capture')
@@ -121,7 +142,7 @@ def run(payload, language='ru', level=1):
     assert m.invoke('write')
     assert bytes(m.files[prv]) == raw
     assert bytes(m.files[sav]) == latest
-    checks = 5
+    checks = 8
     # Restore into different native allocations and verify every scalar by
     # the guest's own recapture, including fresh HUD bindings.
     target = machine()
