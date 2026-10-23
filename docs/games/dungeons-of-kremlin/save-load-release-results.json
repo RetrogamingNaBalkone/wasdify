@@ -1,0 +1,370 @@
+{
+  "date": "2026-10-23",
+  "status": "passed",
+  "scenarios": 12,
+  "dosbox_processes": 36,
+  "results": [
+    {
+      "language": "ru",
+      "level": 1,
+      "patches": [
+        "weapon-selection-fix",
+        "save-load"
+      ],
+      "status": "passed",
+      "installer_sha256": "2a32073c0cd896e21928c074ac41abf9e5ac290c37b901efba8c0038ff72a907",
+      "original_sha256": "12f78afc0eba05f76b5dc0bb99da38d7daa20585024c0ba958fe828aa3864d28",
+      "patched_sha256": "fbf60112a460dac7c96caed6d4048b1ae9d37e77bc4e87b0ef84050a382b7a42",
+      "same_process_loads_and_guest_logical_recapture": 3,
+      "movement_after_restore": true,
+      "death_load_restart_attempt_and_preserved_save": true,
+      "new_process_repeated_load_and_rotation": true,
+      "truncated_and_semantically_invalid_sav_fall_back": true,
+      "dos_write_refusal_preserves_loadable_record": true,
+      "all_invalid_rejected_before_world_mutation": true,
+      "interrupted_rotation_and_first_save_recovered": true,
+      "orphan_tmp_restored_in_new_process": true,
+      "report": "mqa/save-release-20261023-204125-999993/report.json",
+      "video_mode": 0
+    },
+    {
+      "language": "ru",
+      "level": 2,
+      "patches": [
+        "weapon-selection-fix",
+        "save-load"
+      ],
+      "status": "passed",
+      "installer_sha256": "2a32073c0cd896e21928c074ac41abf9e5ac290c37b901efba8c0038ff72a907",
+      "original_sha256": "12f78afc0eba05f76b5dc0bb99da38d7daa20585024c0ba958fe828aa3864d28",
+      "patched_sha256": "fbf60112a460dac7c96caed6d4048b1ae9d37e77bc4e87b0ef84050a382b7a42",
+      "same_process_loads_and_guest_logical_recapture": 3,
+      "movement_after_restore": true,
+      "death_load_restart_attempt_and_preserved_save": true,
+      "new_process_repeated_load_and_rotation": true,
+      "truncated_and_semantically_invalid_sav_fall_back": true,
+      "dos_write_refusal_preserves_loadable_record": true,
+      "all_invalid_rejected_before_world_mutation": true,
+      "interrupted_rotation_and_first_save_recovered": true,
+      "orphan_tmp_restored_in_new_process": true,
+      "report": "mqa/save-release-20261023-204208-086524/report.json",
+      "video_mode": 0
+    },
+    {
+      "language": "ru",
+      "level": 3,
+      "patches": [
+        "weapon-selection-fix",
+        "save-load"
+      ],
+      "status": "passed",
+      "installer_sha256": "2a32073c0cd896e21928c074ac41abf9e5ac290c37b901efba8c0038ff72a907",
+      "original_sha256": "12f78afc0eba05f76b5dc0bb99da38d7daa20585024c0ba958fe828aa3864d28",
+      "patched_sha256": "fbf60112a460dac7c96caed6d4048b1ae9d37e77bc4e87b0ef84050a382b7a42",
+      "same_process_loads_and_guest_logical_recapture": 3,
+      "movement_after_restore": true,
+      "death_load_restart_attempt_and_preserved_save": true,
+      "new_process_repeated_load_and_rotation": true,
+      "truncated_and_semantically_invalid_sav_fall_back": true,
+      "dos_write_refusal_preserves_loadable_record": true,
+      "all_invalid_rejected_before_world_mutation": true,
+      "interrupted_rotation_and_first_save_recovered": true,
+      "orphan_tmp_restored_in_new_process": true,
+      "report": "mqa/save-release-20261023-204252-452546/report.json",
+      "video_mode": 0
+    },
+    {
+      "language": "ru",
+      "level": 1,
+      "patches": [
+        "wasd",
+        "resolution-640x400",
+        "render-optimization",
+        "numeric-hud",
+        "game-settings",
+        "font-scaling",
+        "weapon-selection-fix",
+        "save-load"
+      ],
+      "status": "passed",
+      "installer_sha256": "2a32073c0cd896e21928c074ac41abf9e5ac290c37b901efba8c0038ff72a907",
+      "original_sha256": "12f78afc0eba05f76b5dc0bb99da38d7daa20585024c0ba958fe828aa3864d28",
+      "patched_sha256": "1f068b8f0a11f55a3f9caaa0433eb3639e3e8952a1a5bba66ed412073e8bb67b",
+      "same_process_loads_and_guest_logical_recapture": 3,
+      "movement_after_restore": true,
+      "death_load_restart_attempt_and_preserved_save": true,
+      "new_process_repeated_load_and_rotation": true,
+      "truncated_and_semantically_invalid_sav_fall_back": true,
+      "dos_write_refusal_preserves_loadable_record": true,
+      "all_invalid_rejected_before_world_mutation": true,
+      "interrupted_rotation_and_first_save_recovered": true,
+      "orphan_tmp_restored_in_new_process": true,
+      "report": "mqa/save-release-20261023-204337-816873/report.json",
+      "video_mode": 1
+    },
+    {
+      "language": "ru",
+      "level": 2,
+      "patches": [
+        "wasd",
+        "resolution-640x400",
+        "render-optimization",
+        "numeric-hud",
+        "game-settings",
+        "font-scaling",
+        "weapon-selection-fix",
+        "save-load"
+      ],
+      "status": "passed",
+      "installer_sha256": "2a32073c0cd896e21928c074ac41abf9e5ac290c37b901efba8c0038ff72a907",
+      "original_sha256": "12f78afc0eba05f76b5dc0bb99da38d7daa20585024c0ba958fe828aa3864d28",
+      "patched_sha256": "1f068b8f0a11f55a3f9caaa0433eb3639e3e8952a1a5bba66ed412073e8bb67b",
+      "same_process_loads_and_guest_logical_recapture": 3,
+      "movement_after_restore": true,
+      "death_load_restart_attempt_and_preserved_save": true,
+      "new_process_repeated_load_and_rotation": true,
+      "truncated_and_semantically_invalid_sav_fall_back": true,
+      "dos_write_refusal_preserves_loadable_record": true,
+      "all_invalid_rejected_before_world_mutation": true,
+      "interrupted_rotation_and_first_save_recovered": true,
+      "orphan_tmp_restored_in_new_process": true,
+      "report": "mqa/save-release-20261023-204419-866026/report.json",
+      "video_mode": 1
+    },
+    {
+      "language": "ru",
+      "level": 3,
+      "patches": [
+        "wasd",
+        "resolution-640x400",
+        "render-optimization",
+        "numeric-hud",
+        "game-settings",
+        "font-scaling",
+        "weapon-selection-fix",
+        "save-load"
+      ],
+      "status": "passed",
+      "installer_sha256": "2a32073c0cd896e21928c074ac41abf9e5ac290c37b901efba8c0038ff72a907",
+      "original_sha256": "12f78afc0eba05f76b5dc0bb99da38d7daa20585024c0ba958fe828aa3864d28",
+      "patched_sha256": "1f068b8f0a11f55a3f9caaa0433eb3639e3e8952a1a5bba66ed412073e8bb67b",
+      "same_process_loads_and_guest_logical_recapture": 3,
+      "movement_after_restore": true,
+      "death_load_restart_attempt_and_preserved_save": true,
+      "new_process_repeated_load_and_rotation": true,
+      "truncated_and_semantically_invalid_sav_fall_back": true,
+      "dos_write_refusal_preserves_loadable_record": true,
+      "all_invalid_rejected_before_world_mutation": true,
+      "interrupted_rotation_and_first_save_recovered": true,
+      "orphan_tmp_restored_in_new_process": true,
+      "report": "mqa/save-release-20261023-204503-777109/report.json",
+      "video_mode": 1
+    },
+    {
+      "language": "en",
+      "level": 1,
+      "patches": [
+        "weapon-selection-fix",
+        "save-load"
+      ],
+      "status": "passed",
+      "installer_sha256": "2a32073c0cd896e21928c074ac41abf9e5ac290c37b901efba8c0038ff72a907",
+      "original_sha256": "cce7bc5993d0734ad87e93db37a70b8b52faedfff14ac48d6e317e5ac996a37b",
+      "patched_sha256": "89e17bf8785cfca44da4045513cc2fd04351fd524b20ea5983c469c38728df4d",
+      "same_process_loads_and_guest_logical_recapture": 3,
+      "movement_after_restore": true,
+      "death_load_restart_attempt_and_preserved_save": true,
+      "new_process_repeated_load_and_rotation": true,
+      "truncated_and_semantically_invalid_sav_fall_back": true,
+      "dos_write_refusal_preserves_loadable_record": true,
+      "all_invalid_rejected_before_world_mutation": true,
+      "interrupted_rotation_and_first_save_recovered": true,
+      "orphan_tmp_restored_in_new_process": true,
+      "report": "mqa/save-release-20261023-204126-074687/report.json",
+      "video_mode": 0
+    },
+    {
+      "language": "en",
+      "level": 2,
+      "patches": [
+        "weapon-selection-fix",
+        "save-load"
+      ],
+      "status": "passed",
+      "installer_sha256": "2a32073c0cd896e21928c074ac41abf9e5ac290c37b901efba8c0038ff72a907",
+      "original_sha256": "cce7bc5993d0734ad87e93db37a70b8b52faedfff14ac48d6e317e5ac996a37b",
+      "patched_sha256": "89e17bf8785cfca44da4045513cc2fd04351fd524b20ea5983c469c38728df4d",
+      "same_process_loads_and_guest_logical_recapture": 3,
+      "movement_after_restore": true,
+      "death_load_restart_attempt_and_preserved_save": true,
+      "new_process_repeated_load_and_rotation": true,
+      "truncated_and_semantically_invalid_sav_fall_back": true,
+      "dos_write_refusal_preserves_loadable_record": true,
+      "all_invalid_rejected_before_world_mutation": true,
+      "interrupted_rotation_and_first_save_recovered": true,
+      "orphan_tmp_restored_in_new_process": true,
+      "report": "mqa/save-release-20261023-204208-881689/report.json",
+      "video_mode": 0
+    },
+    {
+      "language": "en",
+      "level": 3,
+      "patches": [
+        "weapon-selection-fix",
+        "save-load"
+      ],
+      "status": "passed",
+      "installer_sha256": "2a32073c0cd896e21928c074ac41abf9e5ac290c37b901efba8c0038ff72a907",
+      "original_sha256": "cce7bc5993d0734ad87e93db37a70b8b52faedfff14ac48d6e317e5ac996a37b",
+      "patched_sha256": "89e17bf8785cfca44da4045513cc2fd04351fd524b20ea5983c469c38728df4d",
+      "same_process_loads_and_guest_logical_recapture": 3,
+      "movement_after_restore": true,
+      "death_load_restart_attempt_and_preserved_save": true,
+      "new_process_repeated_load_and_rotation": true,
+      "truncated_and_semantically_invalid_sav_fall_back": true,
+      "dos_write_refusal_preserves_loadable_record": true,
+      "all_invalid_rejected_before_world_mutation": true,
+      "interrupted_rotation_and_first_save_recovered": true,
+      "orphan_tmp_restored_in_new_process": true,
+      "report": "mqa/save-release-20261023-204253-329698/report.json",
+      "video_mode": 0
+    },
+    {
+      "language": "en",
+      "level": 1,
+      "patches": [
+        "wasd",
+        "resolution-640x400",
+        "render-optimization",
+        "numeric-hud",
+        "game-settings",
+        "font-scaling",
+        "weapon-selection-fix",
+        "save-load"
+      ],
+      "status": "passed",
+      "installer_sha256": "2a32073c0cd896e21928c074ac41abf9e5ac290c37b901efba8c0038ff72a907",
+      "original_sha256": "cce7bc5993d0734ad87e93db37a70b8b52faedfff14ac48d6e317e5ac996a37b",
+      "patched_sha256": "e2b0b9c21bca80e5c7f1012a70930b11d1ea60b72af8342e5f054233cd789a84",
+      "same_process_loads_and_guest_logical_recapture": 3,
+      "movement_after_restore": true,
+      "death_load_restart_attempt_and_preserved_save": true,
+      "new_process_repeated_load_and_rotation": true,
+      "truncated_and_semantically_invalid_sav_fall_back": true,
+      "dos_write_refusal_preserves_loadable_record": true,
+      "all_invalid_rejected_before_world_mutation": true,
+      "interrupted_rotation_and_first_save_recovered": true,
+      "orphan_tmp_restored_in_new_process": true,
+      "report": "mqa/save-release-20261023-204339-653910/report.json",
+      "video_mode": 1
+    },
+    {
+      "language": "en",
+      "level": 2,
+      "patches": [
+        "wasd",
+        "resolution-640x400",
+        "render-optimization",
+        "numeric-hud",
+        "game-settings",
+        "font-scaling",
+        "weapon-selection-fix",
+        "save-load"
+      ],
+      "status": "passed",
+      "installer_sha256": "2a32073c0cd896e21928c074ac41abf9e5ac290c37b901efba8c0038ff72a907",
+      "original_sha256": "cce7bc5993d0734ad87e93db37a70b8b52faedfff14ac48d6e317e5ac996a37b",
+      "patched_sha256": "e2b0b9c21bca80e5c7f1012a70930b11d1ea60b72af8342e5f054233cd789a84",
+      "same_process_loads_and_guest_logical_recapture": 3,
+      "movement_after_restore": true,
+      "death_load_restart_attempt_and_preserved_save": true,
+      "new_process_repeated_load_and_rotation": true,
+      "truncated_and_semantically_invalid_sav_fall_back": true,
+      "dos_write_refusal_preserves_loadable_record": true,
+      "all_invalid_rejected_before_world_mutation": true,
+      "interrupted_rotation_and_first_save_recovered": true,
+      "orphan_tmp_restored_in_new_process": true,
+      "report": "mqa/save-release-20261023-204422-291146/report.json",
+      "video_mode": 1
+    },
+    {
+      "language": "en",
+      "level": 3,
+      "patches": [
+        "wasd",
+        "resolution-640x400",
+        "render-optimization",
+        "numeric-hud",
+        "game-settings",
+        "font-scaling",
+        "weapon-selection-fix",
+        "save-load"
+      ],
+      "status": "passed",
+      "installer_sha256": "2a32073c0cd896e21928c074ac41abf9e5ac290c37b901efba8c0038ff72a907",
+      "original_sha256": "cce7bc5993d0734ad87e93db37a70b8b52faedfff14ac48d6e317e5ac996a37b",
+      "patched_sha256": "e2b0b9c21bca80e5c7f1012a70930b11d1ea60b72af8342e5f054233cd789a84",
+      "same_process_loads_and_guest_logical_recapture": 3,
+      "movement_after_restore": true,
+      "death_load_restart_attempt_and_preserved_save": true,
+      "new_process_repeated_load_and_rotation": true,
+      "truncated_and_semantically_invalid_sav_fall_back": true,
+      "dos_write_refusal_preserves_loadable_record": true,
+      "all_invalid_rejected_before_world_mutation": true,
+      "interrupted_rotation_and_first_save_recovered": true,
+      "orphan_tmp_restored_in_new_process": true,
+      "report": "mqa/save-release-20261023-204506-923052/report.json",
+      "video_mode": 1
+    }
+  ],
+  "package": {
+    "status": "passed",
+    "artifacts": {
+      "wasdify-0.1.0-py3-none-any.whl": {
+        "sha256": "da19ad16205e657ea8142d3f18d667fa657f57d86793ff3006444a079a00b07b",
+        "bytes": 142347
+      },
+      "wasdify-0.1.0.tar.gz": {
+        "sha256": "62cc26a3061cd64bcd7d0629be240e31f1f56fab500f28dcdedb31960709b48d",
+        "bytes": 169554
+      },
+      "WASDify.exe": {
+        "sha256": "2a32073c0cd896e21928c074ac41abf9e5ac290c37b901efba8c0038ff72a907",
+        "bytes": 12475723
+      },
+      "WASDify.pak": {
+        "sha256": "95ae08e61464f8e25e816fe1b780e1ea56cdaec7d05c58e42d1c93be5754220b",
+        "bytes": 8409
+      }
+    },
+    "wheel_entries": 61,
+    "sdist_entries": 87,
+    "exe_entries": 985,
+    "exe_python_modules": 168,
+    "pak_entries": 2,
+    "reproducible_payloads": [
+      "ru",
+      "en"
+    ],
+    "installed_checks": [
+      {
+        "status": "passed",
+        "python": "3.14.6",
+        "module": "C:\\Users\\dspev\\AppData\\Local\\Temp\\wasdify-step6-installed-5rfolvlh\\wasdify\\__init__.py",
+        "installed_resources_and_synthetic_apply": [
+          "ru",
+          "en"
+        ]
+      },
+      {
+        "status": "passed",
+        "python": "3.11.9",
+        "module": "C:\\Users\\dspev\\AppData\\Local\\Temp\\wasdify-step6-installed-5rfolvlh\\wasdify\\__init__.py",
+        "installed_resources_and_synthetic_apply": [
+          "ru",
+          "en"
+        ]
+      }
+    ]
+  }
+}
