@@ -4,9 +4,11 @@ The API is used only for test input, observation and controlled positioning.
 The guest captures, writes, validates and restores every save itself.
 """
 from contextlib import contextmanager
+import argparse
 from datetime import datetime
 import json
 import os
+import socket
 import struct
 import subprocess
 import time
@@ -37,14 +39,20 @@ def records(raw):
 
 
 class Driver:
-    def __init__(self, api, transport, ds, ldt, game):
+    def __init__(self, api, transport, ds, ldt, game, level=1, language='ru'):
         self.api, self.transport, self.ds, self.ldt, self.game = api, transport, ds, ldt, game
+        self.level, self.language = level, language
+        self.shift = 0 if language == "ru" else 0xb0
+
+    def save_path(self, suffix='SAV'):
+        return self.game / f'{"KRN" if self.language == "ru" else "KEN"}{self.level}.{suffix}'
 
     def view(self):
-        return Memory(self.api.get('memory/0/0x2000000'), self.ldt)
+        data = wait_for(lambda: self.api.get('memory/0/0x2000000'))
+        return Memory(data, self.ldt)
 
     def key(self, scan):
-        at = self.ds + 0x2152
+        at = self.ds + self.shift + 0x2152
         count = struct.unpack('<H', self.api.get(f'memory/{at}/2'))[0]
         self.api.put(str(at + 3 + scan), b'\x03')
         self.api.put(str(at), struct.pack('<HB', (count + 1) & 65535, scan))
@@ -59,8 +67,17 @@ class Driver:
 
     def hero(self, m=None):
         m = m or self.check()
-        world = m.pointer(self.ds + 0x266a, 0x74a)
+        world = m.pointer(self.ds + self.shift + 0x266a, 0x74a)
         return m.pointer(world + 0x442, 0xde) if world else None
+
+    def choose(self, action):
+        if action == 'restart':
+            self.key(0x48)
+            # Wait for the release to toggle selection AND the native redraw
+            # to finish, so a short test Enter cannot fall inside painting.
+            wait_for(lambda: self.check().u16(self.transport + 226) == 0
+                     and self.check().u16(self.transport + 254) == 1)
+        self.key(0x1c)
 
     def enter(self, *, choice=None):
         end = time.monotonic() + 60
@@ -69,11 +86,9 @@ class Driver:
             m = self.check()
             if m.u16(self.transport + 44) == 3 and m.u16(self.transport + 194):
                 if choice is not None and not choice_seen and m.u16(self.transport + 254):
-                    assert m.pointer(self.ds + 0x266a) is None
-                    assert m.u16(self.ds + 0x1fae) == 1
-                    if choice == 'restart':
-                        self.key(0x48)
-                    self.key(0x1c)
+                    assert m.pointer(self.ds + self.shift + 0x266a) is None
+                    assert m.u16(self.ds + self.shift + 0x1fae) == 1
+                    self.choose(choice)
                     choice_seen = True
             elif m.u32(self.transport + 196):
                 if choice == 'load':
@@ -102,7 +117,7 @@ class Driver:
         self.key(0x3f)
         wait_for(lambda: self.check().u16(self.transport + 400) != sequence)
         self.wait_idle()
-        return (self.game / 'KRN1.SAV').read_bytes()
+        return self.save_path().read_bytes()
 
     def load(self, health, *, check_health=True):
         m = self.check()
@@ -124,7 +139,7 @@ class Driver:
     def death(self, action, *, pending_save=False):
         pause_at_boundary(self.api, self.transport)
         if pending_save:
-            self.api.put(str(self.ds + 0x2194), b'\x02')
+            self.api.put(str(self.ds + self.shift + 0x2194), b'\x02')
             step_at_boundary(self.api, self.transport)
             assert self.check().u16(self.transport + 200) == 3
         m = self.check()
@@ -133,9 +148,7 @@ class Driver:
         self.release()
         wait_for(lambda: self.api.get(f'memory/{self.transport + 44}/2') == b'\x02\0')
         wait_for(lambda: self.view().u16(self.transport + 254) == 1)
-        if action == 'restart':
-            self.key(0x48)
-        self.key(0x1c)
+        self.choose(action)
         wait_for(lambda: self.check().u16(self.transport + 400) != sequence)
         self.wait_idle()
         if action == 'restart':
@@ -145,11 +158,14 @@ class Driver:
 
 
 @contextmanager
-def process(work, tag, report):
+def process(work, tag, report, level=1, language='ru'):
+    with socket.socket() as reservation:
+        reservation.bind(('127.0.0.1', 0))
+        port = reservation.getsockname()[1]
     config = work / 'observe.conf'
     config.write_text((work / 'dosbox.conf').read_text('ascii').replace(
-        'webserver_enabled = off', 'webserver_enabled = on\nwebserver_bind_address = 127.0.0.1\nwebserver_port = 8136'), encoding='ascii')
-    api = Api(8136)
+        'webserver_enabled = off', f'webserver_enabled = on\nwebserver_bind_address = 127.0.0.1\nwebserver_port = {port}'), encoding='ascii')
+    api = Api(port)
     env = dict(os.environ, SDL_VIDEODRIVER='dummy', SDL_AUDIODRIVER='dummy')
     with (work / (tag + '-stdout.log')).open('wb') as out, (work / (tag + '-stderr.log')).open('wb') as err:
         guest = subprocess.Popen([str(ROOT / 'mqa/dosbox/dosbox.exe'), '-conf', str(config), '-noconsole'],
@@ -161,10 +177,10 @@ def process(work, tag, report):
                 data = api.get('memory/0/0x2000000')
                 anchor = b'OVERFLOW\0UNDERFLOW\0TLOSS\0PLOSS'
                 if data.count(MAGIC) == data.count(anchor) == 1:
-                    return data.find(MAGIC), data.find(anchor) - 0x1082, data
+                    return data.find(MAGIC), data.find(anchor) - (0x1082 + (0 if language == "ru" else 0xb0)), data
             transport, ds, data = wait_for(locate)
             ldt = locate_ldt(data, ds, transport)
-            yield Driver(api, transport, ds, ldt, work / 'RUS')
+            yield Driver(api, transport, ds, ldt, work / ('RUS' if language == 'ru' else 'ENG'), level, language)
         except Exception:
             try:
                 report['cpu'] = json.loads(api.get('cpu/state'))
@@ -179,59 +195,59 @@ def process(work, tag, report):
             guest.wait(timeout=10)
 
 
-def run():
+def run(level=1, language='ru'):
     work = ROOT / 'mqa' / ('save-native-' + datetime.now().strftime('%Y%m%d-%H%M%S-%f'))
-    prepare(work, ROOT / 'build/tools/nasm-2.16.03/nasm.exe', test_gates=True)
-    report = {'work': str(work), 'status': 'running'}
+    prepare(work, ROOT / 'build/tools/nasm-2.16.03/nasm.exe', test_gates=True, level=level, language=language)
+    report = {'work': str(work), 'status': 'running', 'level': level, 'language': language}
     try:
-        with process(work, 'first', report) as d:
+        with process(work, 'first', report, level, language) as d:
             d.enter()
-            report['exercise'] = observe(d.api, d.transport, 'ru', 1, exercise=True, step_door=True)
+            report['exercise'] = observe(d.api, d.transport, language, level, exercise=True, step_door=True)
             raw = d.save()
             report['native_save_bytes'] = len(raw)
             m = d.check()
             health = m.u16(d.hero(m) + 0x5e)
-            attempt = m.u16(d.ds + 0x1fae)
+            attempt = m.u16(d.ds + d.shift + 0x1fae)
             for _ in range(3):
                 d.load(health)
             report['same_process_loads'] = 3
             d.death('load')
             m = d.check()
             assert m.u16(d.hero(m) + 0x5e) == health
-            assert m.u16(d.ds + 0x1fae) == attempt
+            assert m.u16(d.ds + d.shift + 0x1fae) == attempt
             report['death_load'] = True
             d.death('restart', pending_save=True)
-            assert (d.game / 'KRN1.SAV').read_bytes() == raw
+            assert d.save_path().read_bytes() == raw
             m = d.check()
-            assert m.u16(d.ds + 0x1fae) == attempt + 1
-            hud = m.pointer(d.ds + 0xa5d6, 0x2c)
+            assert m.u16(d.ds + d.shift + 0x1fae) == attempt + 1
+            hud = m.pointer(d.ds + d.shift + 0xa5d6, 0x2c)
             assert m.u16(hud + 0x1a) == m.u16(d.hero(m) + 0x72) == 0
             assert m.u16(hud + 0x26) == 0
             report['death_restart_preserves_save_and_attempt'] = True
             report['death_cancels_deferred_save_and_clears_hud'] = True
-        with process(work, 'second', report) as d:
+        with process(work, 'second', report, level, language) as d:
             report['early_choice_before_world'] = d.enter(choice='load')
             m = d.check()
             assert m.u16(d.hero(m) + 0x5e) == health
-            assert m.u16(d.ds + 0x1fae) == attempt
+            assert m.u16(d.ds + d.shift + 0x1fae) == attempt
             d.load(health)
             report['new_process_and_repeated_load'] = True
             latest = d.save()
-            assert (d.game / 'KRN1.PRV').read_bytes() == raw
+            assert d.save_path('PRV').read_bytes() == raw
             report['previous_verified_generation'] = True
             broken = bytearray(latest)
             broken[-1] ^= 0x80
-            (d.game / 'KRN1.SAV').write_bytes(broken)
+            d.save_path().write_bytes(broken)
             d.load(health)
-            assert (d.game / 'KRN1.PRV').read_bytes() == raw
+            assert d.save_path('PRV').read_bytes() == raw
             report['corrupt_current_falls_back_to_previous'] = True
             # Restore the guest-created file for the fresh-start menu trial.
-            (d.game / 'KRN1.SAV').write_bytes(latest)
-        with process(work, 'third', report) as d:
+            d.save_path().write_bytes(latest)
+        with process(work, 'third', report, level, language) as d:
             report['early_restart'] = d.enter(choice='restart')
-            assert (d.game / 'KRN1.SAV').read_bytes() == latest
+            assert d.save_path().read_bytes() == latest
             m = d.check()
-            assert m.u16(d.ds + 0x1fae) == 2
+            assert m.u16(d.ds + d.shift + 0x1fae) == 2
             report['early_restart_preserves_save'] = True
         report['status'] = 'passed'
     except Exception as exc:
@@ -244,5 +260,12 @@ def run():
 
 
 if __name__ == '__main__':
-    result = run()
-    print(json.dumps({key: value for key, value in result.items() if key != 'exercise'}, indent=2))
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--level', type=int, choices=(1, 2, 3), default=1)
+    parser.add_argument('--language', choices=('ru', 'en'), default='ru')
+    parser.add_argument('--matrix', action='store_true', help='Verify all six language/level combinations sequentially')
+    args = parser.parse_args()
+    targets = ((language, level) for language in ('ru', 'en') for level in (1, 2, 3)) if args.matrix else ((args.language, args.level),)
+    results = [run(level, language) for language, level in targets]
+    summary = [{key: value for key, value in result.items() if key != 'exercise'} for result in results]
+    print(json.dumps(summary if args.matrix else summary[0], indent=2))

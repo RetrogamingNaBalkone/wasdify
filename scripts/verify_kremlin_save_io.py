@@ -31,6 +31,32 @@ PROFILES = {
 }
 
 
+NATIVE_BINDINGS = {
+    "ru": {
+        4: (14, 0x2368, "8cd09045558bec1e8ed883ec105657688300"),
+        5: (20, 0x0205, "8cd09045558bec1e8ed883ec0256578a460a"),
+        6: (25, 0x1278, "8cd09045558bec1e8ed85657c45e0626834f1022"),
+        7: (20, 0x0000, "8cd09045558bec1e8ed883ec02565766837e0600"),
+        8: (20, 0x004f, "8cd09045558bec1e8ed883ec045657c45e06"),
+        9: (14, 0x193e, "8cd09045558bec1e8ed883ec185657833ec60001"),
+        10: (25, 0x155d, "8cd09045558bec1e8ed883ec08565766ff36da21"),
+        11: (35, 0x0524, "8cd09045558bec1e8ed883ec0a5657680003"),
+        12: (2, 0x0545, "8cd09045558bec1e8ed883ec0a565766ff760e"),
+    },
+    "en": {
+        4: (5, 0x2960, "8cd09045558bec1e8ed883ec365657b8ffffbbffff9affff"),
+        5: (7, 0x2aa, "8cd09045558bec1e8ed883ec245657b8ffffbbffff9affff"),
+        6: (11, 0x15db, "8cd09045558bec1e8ed85657c45e0626834f102233c98b56"),
+        7: (7, 0x0, "8cd09045558bec1e8ed883ec0256576636ff0e100066837e"),
+        8: (7, 0x79, "8cd09045558bec1e8ed883ec265657b8ffffbbffff9affff"),
+        9: (5, 0x1efc, "8cd09045558bec1e8ed883ec185657833ec600010f849901"),
+        10: (11, 0x18c0, "8cd09045558bec1e8ed883ec08565766ff368a229affff00"),
+        11: (14, 0x554, "8cd09045558bec1e8ed883ec2c5657b8ffffbbffff9affff"),
+        12: (2, 0x936, "8cd09045558bec1e8ed883ec025657a1c0008946fcc41e3c"),
+    },
+}
+
+
 def records(items):
     return struct.pack("<H", len(items)) + b"".join(struct.pack("<BBHHH", *r) for r in items)
 
@@ -58,6 +84,10 @@ def inject(source, payload, language, level=1, *, data_size=8192, pause_on_start
     """Research-only NE installation, checked against exact versions AND code."""
     profile = PROFILES[language]
     autonomous = payload.count(b"KRSNAT01") == 1
+    if autonomous:
+        abi = payload.find(b"KRSABI01")
+        if abi < 0 or payload.count(b"KRSABI01") != 1 or payload[abi + 8] != int(language == 'en'):
+            raise ValueError("Native payload language differs")
     extra = 24 if autonomous else 16
     if data_size not in ((65536,) if autonomous else (8192, 12288)):
         raise ValueError("Unexpected research data-segment size")
@@ -116,18 +146,8 @@ def inject(source, payload, language, level=1, *, data_size=8192, pause_on_start
             code_records.append((3, 0, offset, owner.index, clock_offset))
         elif token == 13 and autonomous:
             code_records.append((2, 0, offset, count + 3, 0))
-        elif token in (4, 5, 6, 7, 8, 9, 10, 11, 12) and language == "ru":
-            segment_index, native_offset, expected = {
-                4: (14, 0x2368, "8cd09045558bec1e8ed883ec105657688300"),
-                5: (20, 0x0205, "8cd09045558bec1e8ed883ec0256578a460a"),
-                6: (25, 0x1278, "8cd09045558bec1e8ed85657c45e0626834f1022"),
-                7: (20, 0x0000, "8cd09045558bec1e8ed883ec02565766837e0600"),
-                8: (20, 0x004f, "8cd09045558bec1e8ed883ec045657c45e06"),
-                9: (14, 0x193e, "8cd09045558bec1e8ed883ec185657833ec60001"),
-                10: (25, 0x155d, "8cd09045558bec1e8ed883ec08565766ff36da21"),
-                11: (35, 0x0524, "8cd09045558bec1e8ed883ec0a5657680003"),
-                12: (2, 0x0545, "8cd09045558bec1e8ed883ec0a565766ff760e"),
-            }[token]
+        elif token in (4, 5, 6, 7, 8, 9, 10, 11, 12):
+            segment_index, native_offset, expected = NATIVE_BINDINGS[language][token]
             native = next(s for s in all_segments if s.index == segment_index)
             if not source.startswith(bytes.fromhex(expected), native.start + native_offset):
                 raise ValueError("Native instance-management context differs")
@@ -161,11 +181,13 @@ def inject(source, payload, language, level=1, *, data_size=8192, pause_on_start
     struct.pack_into("<I", result, ne + 44, struct.unpack_from("<I", source, ne + 44)[0] + extra)
     live_manifest = payload.find(b"KRSLIVE1")
     if pause_on_start:
-        if language != "ru" or live_manifest < 0:
-            raise ValueError("Startup gate requires the RUS live-reload payload")
+        if live_manifest < 0:
+            raise ValueError("Startup gate requires a validated live-reload payload")
         main = next(s for s in all_segments if s.index == 2)
-        intro_context = bytes.fromhex("837ec605754b66ff368cb49affff000083c404c746c60600")
-        if not source.startswith(intro_context, main.start + 0x0f2f):
+        intro_offset, intro_hex = ((0x0f2f, "837ec605754b66ff368cb49affff000083c404c746c60600")
+            if language == 'ru' else (0x141f, "c746880600833e5e200175086a001e686902eb1c"))
+        intro_context = bytes.fromhex(intro_hex)
+        if not source.startswith(intro_context, main.start + intro_offset):
             raise ValueError("Native introduction/palette context differs")
         early_manifest = payload.find(b"KRSEARL1")
         if early_manifest < 0 or payload.count(b"KRSEARL1") != 1:
@@ -173,28 +195,30 @@ def inject(source, payload, language, level=1, *, data_size=8192, pause_on_start
         early_entry, = struct.unpack_from("<H", payload, early_manifest + 8)
         if early_entry >= len(payload):
             raise ValueError("Invalid early hook entry")
-        validate_extra_hook(source, main, 0x0545, bytes.fromhex("8cd09045558bec1e8ed883ec0a565766ff760e"))
+        _, early_site, early_context = NATIVE_BINDINGS[language][12]
+        validate_extra_hook(source, main, early_site, bytes.fromhex(early_context))
         body = bytearray(result[main.start:main.end])
-        body[0x0545:0x054a] = b"\xea\xff\xff\0\0"
+        body[early_site:early_site + 5] = b"\xea\xff\xff\0\0"
         result.extend(bytes(-len(result) % 512))
         main_start = len(result)
-        result.extend(body + records(main.records + ((3, 0, 0x0546, code_index, early_entry),)))
+        result.extend(body + records(main.records + ((3, 0, early_site + 1, code_index, early_entry),)))
         main_entry = ne + 64 + (main.index - 1) * 8
         _, _, main_flags, main_minimum = struct.unpack_from("<4H", source, main_entry)
         struct.pack_into("<4H", result, main_entry, main_start >> 9, len(body), main_flags, main_minimum)
     if live_manifest >= 0:
-        if language != "ru" or payload.count(b"KRSLIVE1") != 1:
+        if payload.count(b"KRSLIVE1") != 1:
             raise ValueError("Invalid live-reload manifest")
         death_entry, = struct.unpack_from("<H", payload, live_manifest + 8)
         if death_entry >= len(payload):
             raise ValueError("Invalid death hook entry")
-        death = next(s for s in all_segments if s.index == 14)
-        validate_extra_hook(source, death, 0x193e, bytes.fromhex("8cd09045558bec1e8ed883ec185657833ec60001"))
+        death_index, death_site, death_context = NATIVE_BINDINGS[language][9]
+        death = next(s for s in all_segments if s.index == death_index)
+        validate_extra_hook(source, death, death_site, bytes.fromhex(death_context))
         body = bytearray(source[death.start:death.end])
-        body[0x193e:0x1943] = b"\xea\xff\xff\0\0"
+        body[death_site:death_site + 5] = b"\xea\xff\xff\0\0"
         result.extend(bytes(-len(result) % 512))
         death_start = len(result)
-        result.extend(body + records(death.records + ((3, 0, 0x193f, code_index, death_entry),)))
+        result.extend(body + records(death.records + ((3, 0, death_site + 1, code_index, death_entry),)))
         original_entry = ne + 64 + (death.index - 1) * 8
         _, _, death_flags, death_minimum = struct.unpack_from("<4H", source, original_entry)
         struct.pack_into("<4H", result, original_entry, death_start >> 9, len(body), death_flags, death_minimum)

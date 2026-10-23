@@ -4,6 +4,7 @@
 ; simulates INT 21h with real segment values in a 50-byte register block.
 ; The research trampoline preserves all registers, segments and FLAGS, then
 ; executes the displaced five-byte native clock-start prologue.
+%include "kremlin_save_profile.inc"
 BITS 16
 ORG 0
 db 'KRSIO001'
@@ -52,7 +53,7 @@ trampoline:
 %ifdef KRS_NATIVE_OFFLINE_TEST
     call krs_native_offline_input
 %endif
-    cmp word [ss:bp+44], 0x0d75
+    cmp word [ss:bp+44], FRAME_RETURN
     jne .resume
     mov ax, [cs:main_selector]
     cmp word [ss:bp+46], ax
@@ -80,11 +81,7 @@ trampoline:
     ; The observer may freeze only at the main loop's clock-start call.
     ; Never stop halfway through an event callback or constructor.
     mov bp, sp
-%if ENG
-    cmp word [ss:bp+44], 0x1250
-%else
-    cmp word [ss:bp+44], 0x0d75
-%endif
+    cmp word [ss:bp+44], FRAME_RETURN
     jne .resume
     mov ax, [cs:main_selector]
     cmp [ss:bp+46], ax
@@ -93,7 +90,7 @@ trampoline:
     cmp word [REQUEST], 17
     jne .frame_ready
     mov bx, [ss:bp+16]
-    cmp word [ss:bx-0x3a], 6
+    cmp word [ss:bx-LOCAL_STAGE], 6
     jne .resume
 .frame_ready:
 %endif

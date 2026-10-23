@@ -1,11 +1,11 @@
-; WASDify, MIT. RUS-only development prototype for restoring dynamic instances.
+; WASDify, MIT. RUS/ENG development code for restoring dynamic instances.
 ; NASM -f bin -I src/wasdify/patches/ kremlin_save_world.asm -o world-ru.bin
 ; BITS 16 protected mode. Uses native far-cdecl ABI and NE relocations.
 ; Commands are accepted ONLY inside verified main-loop / death-check gates.
 ; The host supplies
 ; table indices, never executable addresses or resource pointers from a file.
 %define KRS_WORLD_RESEARCH 1
-%define ENG 0
+%include "kremlin_save_profile.inc"
 %include "kremlin_save_io.asm"
 
 ; data +116 request (1 clone, 2 remove, 3 message, 4 rebuild, 5 dialog), +118 completed,
@@ -39,9 +39,9 @@ krs_world_dispatch:
     je .dialog
     cmp si, 6
     je .palette
-    cmp dword [fs:0x266a], 0
+    cmp dword [fs:GLOBAL(0x266a)], 0
     je .done
-    lgs di, [fs:0x266a]
+    lgs di, [fs:GLOBAL(0x266a)]
     cmp si, 7
     je .intro
     cmp si, 4
@@ -67,7 +67,7 @@ krs_world_dispatch:
     les bx, [gs:di+bx+0x30e]
     cmp word [es:bx+0x12], 8
     jne .done
-    cmp word [es:bx+0x10], 0x655
+    cmp word [es:bx+0x10], PROJECTILE_VTABLE
     jne .done
     push word [130]
     push es
@@ -81,7 +81,7 @@ krs_world_dispatch:
     ; Constructors may clobber all scratch registers and segment registers.
     push ss
     pop fs
-    lgs di, [fs:0x266a]
+    lgs di, [fs:GLOBAL(0x266a)]
     mov bx, [130]
     shl bx, 2
     mov eax, [136]
@@ -94,7 +94,7 @@ krs_world_dispatch:
     les bx, [gs:di+bx+0x30e]
     cmp word [es:bx+0x12], 8
     jne .done
-    cmp word [es:bx+0x10], 0x655
+    cmp word [es:bx+0x10], PROJECTILE_VTABLE
     jne .done
     push word [130]
     push gs
@@ -113,7 +113,7 @@ krs_world_dispatch:
     mov word [120], 3
     jmp .done
 .message:
-    cmp dword [fs:0xa5d6], 0
+    cmp dword [fs:GLOBAL(0xa5d6)], 0
     je .done
     ; Message bytes are native-font text, bounded to 38 characters plus NUL.
     mov bx, 256
@@ -127,7 +127,7 @@ krs_world_dispatch:
 .print_message:
     push ds
     push word 256
-    push dword [fs:0xa5d6]
+    push dword [fs:GLOBAL(0xa5d6)]
     call far [cs:world_message]
     add sp, 8
     jmp .success
@@ -136,10 +136,10 @@ krs_world_dispatch:
     ; destructor owns every object/resource and detaches their queued events.
     ; Only the verified main-loop frame may still own these local pointers.
     mov bx, [40]
-    mov eax, [fs:bx-0x12]
-    cmp eax, [fs:0x266a]
+    mov eax, [fs:bx-LOCAL_WORLD]
+    cmp eax, [fs:GLOBAL(0x266a)]
     jne .done
-    cmp dword [fs:0x1f82], 0
+    cmp dword [fs:GLOBAL(0x1f82)], 0
     je .done
     call read_time
     push eax
@@ -148,41 +148,41 @@ krs_world_dispatch:
     pop eax
     mov [52], eax
     push word 0                 ; keep the world's own allocation
-    push dword [fs:0x266a]
+    push dword [fs:GLOBAL(0x266a)]
     call far [cs:world_destroy]
     add sp, 6
     push ss
     pop fs
-    cmp word [fs:0x3e8], 0
+    cmp word [fs:QUEUE(0x3e8)], 0
     jne .done
-    cmp word [fs:0x3ea], 0
+    cmp word [fs:QUEUE(0x3ea)], 0
     jne .done
-    push dword [fs:0x1f82]      ; trusted current-level resource, not file data
-    push dword [fs:0x266a]
+    push dword [fs:GLOBAL(0x1f82)]      ; trusted current-level resource, not file data
+    push dword [fs:GLOBAL(0x266a)]
     call far [cs:world_initialize]
     add sp, 8
     push ss
     pop fs
-    lgs di, [fs:0x266a]
+    lgs di, [fs:GLOBAL(0x266a)]
     mov bx, [40]
     mov eax, [gs:di+0x442]
-    mov [fs:bx-0x40], eax       ; main loop's cached hero
-    mov dword [fs:bx-0x16], 0   ; pending commands
-    mov word [fs:bx-0x42], 0    ; status from the old hero
-    mov word [fs:bx-0x3a], 6    ; no blocking level introduction during reload
+    mov [fs:bx-LOCAL_HERO], eax       ; main loop's cached hero
+    mov dword [fs:bx-LOCAL_COMMANDS], 0   ; pending commands
+    mov word [fs:bx-LOCAL_STATUS], 0    ; status from the old hero
+    mov word [fs:bx-LOCAL_STAGE], 6    ; no blocking level introduction during reload
     call read_time
     mov [52], eax
     mov word [148], 1          ; a held death check must not call the old hero
     jmp .success
 .dialog:
-    cmp dword [fs:0xa5d6], 0
+    cmp dword [fs:GLOBAL(0xa5d6)], 0
     je .done
     cmp word [44], 3
     jne .draw_dialog
     ; The menu renderer owns a different image from the world's B53Ah buffer.
     ; Use its native clear method, as 1008:069C does, before each redraw.
-    push dword [fs:0xb48c]
-    les bx, [fs:0xb48c]
+    push dword [fs:GLOBAL(0xb48c)]
+    les bx, [fs:GLOBAL(0xb48c)]
     mov bx, [es:bx]
     call far [fs:bx+0x30]
     add sp, 4
@@ -193,15 +193,15 @@ krs_world_dispatch:
     jc .done
     jmp .success
 .palette:
-    cmp dword [fs:0xb48c], 0
+    cmp dword [fs:GLOBAL(0xb48c)], 0
     je .done
-    push dword [fs:0xb48c]
+    push dword [fs:GLOBAL(0xb48c)]
     call far [cs:world_palette]
     add sp, 4
     jmp .success
 .intro:
     mov bx, [40]
-    mov word [fs:bx-0x3a], 1
+    mov word [fs:bx-LOCAL_STAGE], 1
     jmp .success
 .done:
     inc word [118]
@@ -259,7 +259,7 @@ krs_death_trampoline:
     jne .vanilla
 %endif
     mov bp, sp
-    cmp word [ss:bp+44], 0x1005
+    cmp word [ss:bp+44], DEATH_RETURN
     jne .vanilla
     mov ax, [cs:main_selector]
     cmp word [ss:bp+46], ax
@@ -272,8 +272,8 @@ krs_death_trampoline:
     ; A new attempt must never perform a request issued by the old hero.
     mov word [200], 0         ; N_START
     mov word [228], 0         ; N_PENDING
-    mov byte [ss:0x2194], 0
-    mov byte [ss:0x2198], 0
+    mov byte [ss:GLOBAL(0x2194)], 0
+    mov byte [ss:GLOBAL(0x2198)], 0
     cmp word [144], 1
     jne .vanilla
 %endif
@@ -354,7 +354,7 @@ krs_early_trampoline:
     mov eax, [ss:bp+44]
     mov [424], eax
 %endif
-    cmp word [ss:bp+44], 0x0c70
+    cmp word [ss:bp+44], EARLY_RETURN
     jne .native
     mov ax, [cs:main_selector]
     cmp word [ss:bp+46], ax

@@ -10,20 +10,23 @@ from verify_kremlin_save_io_synthetic import Machine
 
 
 class NativeMachine(Machine):
-    def __init__(self, payload):
-        super().__init__(payload, 'ru')
+    def __init__(self, payload, language='ru', level=1):
+        super().__init__(payload, language)
+        self.shift = 0 if language == 'ru' else 0xb0
+        self.level = level
+        self.write16(0x201aa, ord(str(level)))
         at = payload.index(b'KRSNAT01') + 8
         names = ('frame', 'early', 'death', 'capture', 'validate', 'restore', 'write', 'read')
         self.entries = dict(zip(names, struct.unpack_from('<8H', payload, at)))
-        self.write16(0x31fae, 2)
-        self.u.mem_write(0x3266a, struct.pack('<HH', 0, 0x7000))
+        self.write16(self.global_at(0x1fae), 2)
+        self.u.mem_write(self.global_at(0x266a), struct.pack('<HH', 0, 0x7000))
         self.write16(0x70000, 64)
         self.write16(0x70004, 64)
         self.u.mem_write(0x70442, struct.pack('<HH', 0, 0x7100))
-        self.u.mem_write(0x3a5d6, struct.pack('<HH', 0, 0x7300))
-        self.u.mem_write(0x32d7e, bytes((77,)) * 4096)
+        self.u.mem_write(self.global_at(0xa5d6), struct.pack('<HH', 0, 0x7300))
+        self.u.mem_write(self.global_at(0x2d7e), bytes((77,)) * 4096)
         for offset in (0x608a, 0x718e, 0x8292):
-            self.u.mem_write(0x30000 + offset, bytes((77,)) * 4096)
+            self.u.mem_write(self.global_at(offset), bytes((77,)) * 4096)
         self.write16(0x71002, 4)
         self.write16(0x71012, 1)
         for offset, value in ((0x5e, 20), (0x60, 50), (0x62, 100), (0x64, 100), (0xd6, 3)):
@@ -38,6 +41,9 @@ class NativeMachine(Machine):
         self.failure_point = None
         self.operation_counts = {}
         self.terminated = False
+
+    def global_at(self, offset):
+        return 0x30000 + self.shift + offset
 
     def interrupt(self, u, number, data):
         if number == 0x21:
@@ -88,8 +94,12 @@ class NativeMachine(Machine):
         self.write16(0x200e8, len(raw))
 
 
-def run(payload):
-    m = NativeMachine(payload)
+def run(payload, language='ru', level=1):
+    def machine():
+        return NativeMachine(payload, language, level)
+    prefix = ('KRN' if language == 'ru' else 'KEN') + str(level)
+    sav, prv, tmp = ((prefix + '.' + suffix).encode('ascii') for suffix in ('SAV', 'PRV', 'TMP'))
+    m = machine()
     assert m.invoke('capture')
     raw = m.snapshot()
     assert m.invoke('validate')
@@ -98,18 +108,18 @@ def run(payload):
     wire[40:44] = bytes(4)
     assert checksum == crc32(wire)
     assert m.invoke('write')
-    assert bytes(m.files[b'KRN1.SAV']) == raw
+    assert bytes(m.files[sav]) == raw
     # A second write preserves the verified old generation, then replaces SAV.
     m.write16(0x7105e, 45)
     assert m.invoke('capture')
     latest = m.snapshot()
     assert m.invoke('write')
-    assert bytes(m.files[b'KRN1.PRV']) == raw
-    assert bytes(m.files[b'KRN1.SAV']) == latest
+    assert bytes(m.files[prv]) == raw
+    assert bytes(m.files[sav]) == latest
     checks = 5
     # Restore into different native allocations and verify every scalar by
     # the guest's own recapture, including fresh HUD bindings.
-    target = NativeMachine(payload)
+    target = machine()
     target.u.mem_write(0x72000, bytes(target.u.mem_read(0x71000, 256)))
     target.u.mem_write(0x70442, struct.pack('<HH', 0, 0x7200))
     target.u.mem_write(0x200c4, bytes(4))
@@ -151,28 +161,28 @@ def run(payload):
         m.install(raw)
         m.failure = failure
         assert not m.invoke('write')
-        assert bytes(m.files[b'KRN1.SAV']) == latest
-        assert bytes(m.files[b'KRN1.PRV']) == raw
+        assert bytes(m.files[sav]) == latest
+        assert bytes(m.files[prv]) == raw
         m.failure = None
         checks += 1
     # Each real DOS operation has independent failure paths, including both
     # renames. At least the previously verified current generation survives.
     for operation, ordinal in ((0x40, 1), (0x40, 3), (0x68, 1), (0x3e, 1),
             (0x3f, 1), (0x3f, 2), (0x41, 1), (0x56, 1), (0x56, 2)):
-        trial = NativeMachine(payload)
+        trial = machine()
         trial.install(raw)
-        trial.files = {b'KRN1.SAV': bytearray(latest), b'KRN1.PRV': bytearray(raw)}
+        trial.files = {sav: bytearray(latest), prv: bytearray(raw)}
         trial.failure_point = operation, ordinal
         assert not trial.invoke('write'), (operation, ordinal)
-        assert any(bytes(trial.files.get(name, b'')) == latest for name in (b'KRN1.SAV', b'KRN1.PRV'))
+        assert any(bytes(trial.files.get(name, b'')) == latest for name in (sav, prv))
         checks += 1
-    trial = NativeMachine(payload)
+    trial = machine()
     trial.install(raw)
-    trial.files[b'KRN1.TMP'] = bytearray(b'foreign temporary file')
+    trial.files[tmp] = bytearray(b'foreign temporary file')
     assert not trial.invoke('write')
-    assert trial.files[b'KRN1.TMP'] == b'foreign temporary file'
+    assert trial.files[tmp] == b'foreign temporary file'
     checks += 1
-    trial = NativeMachine(payload)
+    trial = machine()
     corrupt = bytearray(raw)
     corrupt[0] ^= 1
     trial.install(corrupt)
@@ -181,7 +191,7 @@ def run(payload):
     checks += 1
     # A pending F5 belongs to the dying hero even if no file exists. The death
     # gate must cancel it before replaying the exact native health prologue.
-    trial = NativeMachine(payload)
+    trial = machine()
     entry = struct.unpack_from('<H', payload, payload.index(b'KRSLIVE1') + 8)[0]
     trial.write16(0x200c8, 3)
     trial.write16(0x200e4, 1)
@@ -190,16 +200,85 @@ def run(payload):
     for register, value in {'CS': 0x1000, 'SS': 0x3000, 'SP': 0xd000,
             'DS': 0x3000, 'BP': 0xc000, 'EFLAGS': 0x202}.items():
         trial.set_reg(register, value)
-    trial.u.mem_write(0x3d000, struct.pack('<4H', 0x1005, 0x4000, 0, 0x7100))
+    trial.u.mem_write(0x3d000, struct.pack('<4H', 0x1005 if language == 'ru' else 0x14e2, 0x4000, 0, 0x7100))
     trial.u.emu_start(0x10000 + entry, 0x50800, count=10000)
     assert trial.reg('CS') == 0x5000 and trial.reg('IP') == 0x800
     assert trial.read16(0x200c8) == trial.read16(0x200e4) == 0
     checks += 1
-    return {'checks': checks, 'snapshot_size': len(raw), 'status': 'passed'}
+    # A valid CRC must not allow the other language or level to be loaded.
+    for tag in (b'RUS1', b'RUS2', b'RUS3', b'ENG1', b'ENG2', b'ENG3'):
+        if tag == raw[4:8]:
+            continue
+        trial = machine()
+        changed = bytearray(raw)
+        changed[4:8] = tag
+        changed[40:44] = bytes(4)
+        struct.pack_into('<I', changed, 40, crc32(changed))
+        trial.install(changed)
+        assert not trial.invoke('validate'), tag
+        checks += 1
+    # Invoke the real early dispatcher on synthetic resource names. No file or
+    # native world is needed to reject unsupported or malformed level names.
+    for name in (b'LEVEL0', b'LEVEL4', b'LEVEL12', b'LEVEQ1', b'OTHER1', b'LEVEL1X'):
+        trial = machine()
+        trial.u.mem_write(trial.global_at(0x1f82), struct.pack('<HH', 0, 0x9000))
+        trial.u.mem_write(0x90000, name + bytes(8))
+        files_before = dict(trial.files)
+        calls_before = len(trial.calls)
+        trial.invoke('early')
+        assert trial.read16(0x200c2) == 0
+        assert len(trial.calls) == calls_before
+        assert trial.files == files_before
+        checks += 1
+    # Early selection must bind each supported level before the world exists.
+    for selected in (1, 2, 3):
+        trial = machine()
+        trial.u.mem_write(trial.global_at(0x1f82), struct.pack('<HH', 0, 0x9000))
+        trial.u.mem_write(0x90000, f'LEVEL{selected}'.encode('ascii') + bytes(8))
+        trial.write16(0x200f4, 1)  # synthetic resource already verified
+        trial.invoke('early')
+        assert trial.read16(0x200c2) == 1
+        assert trial.read16(0x201aa) == ord(str(selected))
+        checks += 1
+    return {'language': language, 'level': level, 'checks': checks,
+            'snapshot_size': len(raw), 'status': 'passed'}
+
+
+def isolation(payloads):
+    shared = {}
+    snapshots = {}
+    for language, payload in payloads.items():
+        for level in (1, 2, 3):
+            m = NativeMachine(payload, language, level)
+            m.files = shared
+            assert m.invoke('capture')
+            raw = m.snapshot()
+            assert m.invoke('write')
+            snapshots[(language, level)] = raw
+            assert len(shared) == len(snapshots)
+    # Read all six records from the same DOS directory through the real loader.
+    for (language, level), raw in snapshots.items():
+        payload = payloads[language]
+        m = NativeMachine(payload, language, level)
+        m.files = shared
+        prefix = b'KRN1' if language == 'ru' else b'KEN1'
+        m.set_reg('SI', payload.index(prefix + b'.SAV\0'))
+        assert m.invoke('read')
+        assert m.snapshot() == raw
+    assert len(shared) == 6
+    return 12
 
 
 if __name__ == '__main__':
-    output = ROOT / 'build/save-research/native-synthetic.bin'
-    build(ROOT / 'build/tools/nasm-2.16.03/nasm.exe', output)
-    print(json.dumps(run(output.read_bytes()), indent=2))
-
+    results, payloads = [], {}
+    for language in ('ru', 'en'):
+        output = ROOT / f'build/save-research/native-synthetic-{language}.bin'
+        build(ROOT / 'build/tools/nasm-2.16.03/nasm.exe', output, language=language)
+        payloads[language] = output.read_bytes()
+        for level in (1, 2, 3):
+            result = run(payloads[language], language, level)
+            results.append(result)
+            print(json.dumps(result), flush=True)
+    extra = isolation(payloads)
+    print(json.dumps({'checks': sum(r['checks'] for r in results) + extra,
+                      'shared_directory_checks': extra, 'status': 'passed'}))

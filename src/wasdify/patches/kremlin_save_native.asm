@@ -1,4 +1,4 @@
-; WASDify, MIT. Autonomous RUS level-1 development payload, BITS 16 / 386.
+; WASDify, MIT. Autonomous RUS/ENG levels 1-3 payload, BITS 16 / 386.
 ; Build: python scripts/build_kremlin_save_native.py (PYTHONPATH=src).
 ; Protected mode, far-cdecl native calls. NE fixups bind code/data selectors;
 ; the separate 64 KiB snapshot segment contains scalars and IDs, never pointers.
@@ -43,6 +43,7 @@
 %define PANEL_BOTTOM 412
 %define PANEL_LEFT 414
 %define PANEL_SHADE 416
+%define N_LEVEL 426
 %define BASE_PTR 8192
 %define BASE_TYPE 9216
 %define PLACED 9728
@@ -71,6 +72,7 @@ snapshot_selector: dw 0xffff
 db 'KRSNAT01'
 dw krs_native_frame, krs_native_early, krs_native_death
 dw native_capture, native_validate, native_restore, native_write_file, native_read_file
+db 'KRSABI01', ENG
 
 ; Transport calls must not destroy the snapshot/world selectors or loop state.
 native_io:
@@ -90,9 +92,9 @@ native_io:
 native_segments:
     mov ax, [cs:snapshot_selector]
     mov fs, ax
-    cmp dword [ss:0x266a], 0
+    cmp dword [ss:GLOBAL(0x266a)], 0
     je .done
-    lgs bp, [ss:0x266a]
+    lgs bp, [ss:GLOBAL(0x266a)]
 .done:
     ret
 
@@ -103,10 +105,10 @@ native_fail:
     cmp word [N_MUTATING], 0
     jne native_fatal
     mov sp, [N_SP]
-    mov si, native_ru_load_failed
+    mov si, MESSAGE(load_failed)
     cmp word [N_PENDING], 1
     jne .message
-    mov si, native_ru_save_failed
+    mov si, MESSAGE(save_failed)
 .message:
     call native_message
     call native_clear_input
@@ -119,7 +121,7 @@ native_fail:
     stc
     ret
 native_fatal:
-    mov si, native_ru_restart
+    mov si, MESSAGE(restart)
     call native_dialog
     ; Protected INT 21h exit is provided by the game's DPMI host. No return to
     ; a caller with cached pointers into the destroyed world is permitted.
@@ -132,14 +134,14 @@ native_clear_input:
     push es
     push ss
     pop es
-    mov di, 0x2152
+    mov di, GLOBAL(0x2152)
     mov cx, 131
     xor ax, ax
     cld
     rep stosb
-    cmp dword [ss:0xa5d6], 0
+    cmp dword [ss:GLOBAL(0xa5d6)], 0
     je .done
-    les bx, [ss:0xa5d6]
+    les bx, [ss:GLOBAL(0xa5d6)]
     mov dword [es:bx+0x28], 0
 .done:
     pop es
@@ -170,15 +172,15 @@ native_dialog:
     call native_text
     ; Native image clear removes the previous selection cursor. The same
     ; image object is used by the native multiline dialog and presentation.
-    cmp dword [ss:0xb48c], 0
+    cmp dword [ss:GLOBAL(0xb48c)], 0
     je .done
     cmp word [44], 3
     je .clear_image
     call native_panel
     jnc .draw
 .clear_image:
-    push dword [ss:0xb48c]
-    les bx, [ss:0xb48c]
+    push dword [ss:GLOBAL(0xb48c)]
+    les bx, [ss:GLOBAL(0xb48c)]
     mov bx, [es:bx]
     call far [ss:bx+0x30]
     add sp, 4
@@ -199,19 +201,19 @@ native_panel:
     pushad
     push es
     mov word [PANEL_SELECTOR], 0
-    mov ax, [ss:0xc1fc]
+    mov ax, [ss:GLOBAL(0xc1fc)]
     cmp ax, 160
     jb .bad
     cmp ax, 1600
     ja .bad
     mov [PANEL_WIDTH], ax
-    mov ax, [ss:0xc1fe]
+    mov ax, [ss:GLOBAL(0xc1fe)]
     cmp ax, 100
     jb .bad
     cmp ax, 1200
     ja .bad
     mov [PANEL_HEIGHT], ax
-    mov bx, [ss:0xb53c]
+    mov bx, [ss:GLOBAL(0xb53c)]
     test bx, bx
     jz .bad
     mov ax, 0x000a
@@ -225,7 +227,7 @@ native_panel:
     movzx ecx, cx
     shl ecx, 16
     mov cx, dx
-    movzx edx, word [ss:0xb53a]
+    movzx edx, word [ss:GLOBAL(0xb53a)]
     add ecx, edx
     mov edx, ecx
     shr ecx, 16
@@ -357,11 +359,11 @@ native_message:
     push fs
     push gs
     call native_text
-    cmp dword [ss:0xa5d6], 0
+    cmp dword [ss:GLOBAL(0xa5d6)], 0
     je .done
     push ds
     push word 1536
-    push dword [ss:0xa5d6]
+    push dword [ss:GLOBAL(0xa5d6)]
     call far [cs:world_message]
     add sp, 8
 .done:
@@ -376,10 +378,10 @@ native_choice:
     call native_clear_input
     mov word [N_SELECT], 1
 .draw:
-    mov si, native_ru_choice_1
+    mov si, MESSAGE(choice_1)
     cmp word [N_SELECT], 1
     je .paint
-    mov si, native_ru_choice_0
+    mov si, MESSAGE(choice_0)
 .paint:
     call native_dialog
     mov word [N_MENU], 1
@@ -391,7 +393,7 @@ native_choice:
 .key:
     movzx si, byte [cs:bx]
     inc bx
-    mov al, [ss:si+0x2155]
+    mov al, [ss:si+GLOBAL(0x2155)]
     cmp al, 3
     jne .released
     bts dx, cx
@@ -399,7 +401,7 @@ native_choice:
 .released:
     cmp al, 2
     jne .next
-    mov byte [ss:si+0x2155], 0
+    mov byte [ss:si+GLOBAL(0x2155)], 0
     bt dx, cx
     jnc .next
     btr dx, cx
@@ -431,16 +433,25 @@ krs_native_early:
     mov word [N_PAUSING], 0
     mov word [N_BOUND+2], 0
     mov word [N_ENABLED], 0
+    mov word [N_LEVEL], 0
     mov word [144], 0
     mov word [158], 0
     mov word [N_START], 0
-    cmp dword [ss:0x1f82], 0
+    cmp dword [ss:GLOBAL(0x1f82)], 0
     je .done
-    les bx, [ss:0x1f82]
+    les bx, [ss:GLOBAL(0x1f82)]
     cmp dword [es:bx], 'LEVE'
     jne .done
-    cmp dword [es:bx+3], 0x00314c45 ; 'EL1\0'
+    cmp byte [es:bx+4], 'L'
     jne .done
+    cmp byte [es:bx+5], '1'
+    jb .done
+    cmp byte [es:bx+5], '3'
+    ja .done
+    cmp byte [es:bx+6], 0
+    jne .done
+    mov al, [es:bx+5]
+    mov [N_LEVEL], al
     mov ax, 1
     call native_io
     jne native_fail
@@ -450,7 +461,7 @@ krs_native_early:
     call native_available
     jc .done
     ; Restore the menu palette before drawing the accepted pre-splash choice.
-    push dword [ss:0xb48c]
+    push dword [ss:GLOBAL(0xb48c)]
     call far [cs:world_palette]
     add sp, 4
     call native_choice
@@ -467,13 +478,13 @@ krs_native_frame:
     cmp word [N_ENABLED], 1
     jne .done
     call native_segments
-    mov eax, [ss:0x266a]
+    mov eax, [ss:GLOBAL(0x266a)]
     test eax, eax
     jz .done
     cmp eax, [N_BOUND]
     je .bound
     call native_bind
-    mov eax, [ss:0x266a]
+    mov eax, [ss:GLOBAL(0x266a)]
     mov [N_BOUND], eax
 .bound:
     cmp word [N_START], 3
@@ -488,17 +499,17 @@ krs_native_frame:
     jne .keys
     mov word [N_PENDING], 2
     mov word [N_START], 0
-    push dword [ss:0xb48c]
+    push dword [ss:GLOBAL(0xb48c)]
     call far [cs:world_palette]
     add sp, 4
     mov word [N_PENDING], 2
     jmp .perform
 .keys:
     mov bx, [40]
-    cmp word [ss:bx-0x3a], 6
+    cmp word [ss:bx-LOCAL_STAGE], 6
     jne .done
-    mov al, [ss:0x2194]        ; F5 release
-    mov ah, [ss:0x2198]        ; F9 release
+    mov al, [ss:GLOBAL(0x2194)]        ; F5 release
+    mov ah, [ss:GLOBAL(0x2198)]        ; F9 release
     cmp ax, 0x0202
     je .clear
     cmp al, 2
@@ -510,15 +521,15 @@ krs_native_frame:
     jne .done
     mov word [N_PENDING], 2
 .clear:
-    mov byte [ss:0x2194], 0
-    mov byte [ss:0x2198], 0
+    mov byte [ss:GLOBAL(0x2194)], 0
+    mov byte [ss:GLOBAL(0x2198)], 0
     cmp word [N_PENDING], 0
     je .done
     ; Paint progress during one native frame, then run I/O at the next gate.
-    mov si, native_ru_saving
+    mov si, MESSAGE(saving)
     cmp word [N_PENDING], 1
     je .progress
-    mov si, native_ru_loading
+    mov si, MESSAGE(loading)
 .progress:
     call native_message
     mov ax, [N_PENDING]
@@ -537,7 +548,7 @@ krs_native_frame:
     call native_write_file
     jc native_fail
     mov word [144], 1
-    mov si, native_ru_saved
+    mov si, MESSAGE(saved)
     jmp .finish
 .read:
     call native_available
@@ -546,7 +557,7 @@ krs_native_frame:
     call native_rebuild
     call native_validate
     call native_restore
-    mov si, native_ru_loaded
+    mov si, MESSAGE(loaded)
 .finish:
     call native_message
     call native_clear_input
@@ -574,7 +585,7 @@ krs_native_death:
     call native_rebuild
     call native_validate
     call native_restore
-    mov si, native_ru_loaded
+    mov si, MESSAGE(loaded)
     call native_message
     mov word [N_MUTATING], 0
     mov word [N_ACTION], 2
@@ -584,10 +595,10 @@ krs_native_death:
     call native_rebuild
     call native_hud
     call native_clear_input
-    mov si, native_ru_cleared
+    mov si, MESSAGE(cleared)
     call native_message
     mov bx, [40]
-    mov word [ss:bx-0x3a], 1
+    mov word [ss:bx-LOCAL_STAGE], 1
     mov word [N_MUTATING], 0
     mov word [N_ACTION], 3
     inc word [N_SEQUENCE]
@@ -602,7 +613,7 @@ native_rebuild:
     jne native_fail
     call native_segments
     call native_bind
-    mov eax, [ss:0x266a]
+    mov eax, [ss:GLOBAL(0x266a)]
     mov [N_BOUND], eax
     ret
 
@@ -692,7 +703,7 @@ native_bind:
     inc si
     cmp si, 256
     jb .clear
-    mov si, 0x2d7e
+    mov si, GLOBAL(0x2d7e)
     mov cx, 4096
 .placed:
     movzx bx, byte [ss:si]
@@ -834,12 +845,12 @@ native_find_animation:
 
 native_clock_now:
     mov eax, [52]
-    cmp word [ss:0x20c6], 0
+    cmp word [ss:GLOBAL(0x20c6)], 0
     je .stopped
-    sub eax, [ss:0x20c8]
+    sub eax, [ss:GLOBAL(0x20c8)]
     jmp .done
 .stopped:
-    mov eax, [ss:0x20cc]
+    mov eax, [ss:GLOBAL(0x20cc)]
 .done:
     mov [N_NOW], eax
     ret
@@ -855,7 +866,9 @@ native_capture:
     add di, 2
     loop .header
     mov dword [fs:0], 'KRN1'
-    mov dword [fs:4], 'RUS1'
+    mov dword [fs:4], LANGUAGE_TAG
+    mov al, [N_LEVEL]
+    mov [fs:7], al
     mov si, native_schema
     mov di, 8
     mov cx, 16
@@ -865,8 +878,8 @@ native_capture:
     inc si
     inc di
     loop .schema
-    mov dword [fs:24], 0x52a5433e
-    mov ax, [ss:0x1fae]
+    mov dword [fs:24], RESOURCE_CRC
+    mov ax, [ss:GLOBAL(0x1fae)]
     mov [fs:H_ATTEMPT], ax
     mov ax, [gs:bp+0xc]
     mov [fs:H_COMPLETED], ax
@@ -920,10 +933,10 @@ native_capture:
     mov word [si], 0xffff
     add si, 2
     loop .orders
-    mov cx, [ss:0x3e8]
+    mov cx, [ss:QUEUE(0x3e8)]
     cmp cx, 256
     ja native_fail
-    mov eax, [ss:0x3ec]
+    mov eax, [ss:QUEUE(0x3ec)]
     xor dx, dx
 .ring:
     test cx, cx
@@ -955,11 +968,11 @@ native_capture:
     cmp [es:bx+14], dx
     jne native_fail
     mov dx, [N_ORDER]             ; ordinal assigned below using total-cx
-    mov dx, [ss:0x3e8]
+    mov dx, [ss:QUEUE(0x3e8)]
     sub dx, cx
     inc dx
     loop .ring
-    cmp eax, [ss:0x3ec]
+    cmp eax, [ss:QUEUE(0x3ec)]
     jne native_fail
 .ring_done:
     mov word [N_SLOT], 0
@@ -1100,7 +1113,7 @@ native_capture:
     cmp word [N_SLOT], 256
     jb .object
     mov ax, [N_ORDER]
-    cmp ax, [ss:0x3ea]
+    cmp ax, [ss:QUEUE(0x3ea)]
     jne native_fail
     mov ax, [N_COUNT]
     mov [fs:H_OBJECTS], ax
@@ -1297,8 +1310,8 @@ native_capture_extras:
 .done:
     ret
 
-native_map_offsets: dw 0x608a,0x718e,0x8292,0x9396
-native_callbacks: dw 0x502,0x50a,0x512,0x51a,0x52a,0x532,0x53a,0x542,0x55a,0x54a
+native_map_offsets: dw GLOBAL(0x608a),GLOBAL(0x718e),GLOBAL(0x8292),GLOBAL(0x9396)
+native_callbacks: dw CALLBACK(0x502),CALLBACK(0x50a),CALLBACK(0x512),CALLBACK(0x51a),CALLBACK(0x52a),CALLBACK(0x532),CALLBACK(0x53a),CALLBACK(0x542),CALLBACK(0x55a),CALLBACK(0x54a)
 
 ; CRC covers the complete bounded file, treating its checksum word as zero.
 native_checksum:
@@ -1347,7 +1360,12 @@ native_basic_validate:
     call native_segments
     cmp dword [fs:0], 'KRN1'
     jne .bad
-    cmp dword [fs:4], 'RUS1'
+    cmp word [fs:4], LANGUAGE_PAIR
+    jne .bad
+    cmp byte [fs:6], LANGUAGE_LAST
+    jne .bad
+    mov al, [N_LEVEL]
+    cmp [fs:7], al
     jne .bad
     mov si, native_schema
     mov di, 8
@@ -1359,7 +1377,7 @@ native_basic_validate:
     inc si
     inc di
     loop .schema
-    cmp dword [fs:24], 0x52a5433e
+    cmp dword [fs:24], RESOURCE_CRC
     jne .bad
     mov ax, [fs:H_LENGTH]
     cmp ax, RECORD_START
@@ -2067,17 +2085,17 @@ native_restore:
     jb .object
     ; Rebuild the event ring after all constructors and object references.
     mov ax, [N_ORDER]
-    mov [ss:0x3e8], ax
-    mov word [ss:0x3ea], 0
-    mov dword [ss:0x3f0], 0
-    mov byte [ss:0x3f4], 0
+    mov [ss:QUEUE(0x3e8)], ax
+    mov word [ss:QUEUE(0x3ea)], 0
+    mov dword [ss:QUEUE(0x3f0)], 0
+    mov byte [ss:QUEUE(0x3f4)], 0
     xor eax, eax
     cmp word [N_ORDER], 0
     je .cursor
     mov ax, [ORDERS]
     call native_pointer
 .cursor:
-    mov [ss:0x3ec], eax
+    mov [ss:QUEUE(0x3ec)], eax
     mov word [N_SLOT], 0
 .events:
     mov si, [N_SLOT]
@@ -2089,7 +2107,7 @@ native_restore:
     les bx, [gs:bp+si+0x30e]
     movzx cx, byte [fs:di+10]
     mov [es:bx], cx
-    add [ss:0x3ea], cx
+    add [ss:QUEUE(0x3ea)], cx
     mov dword [es:bx+8], 0
     mov dword [es:bx+12], 0
     test cx, cx
@@ -2140,7 +2158,7 @@ native_restore:
     cmp word [N_SLOT], 256
     jb .events
     mov ax, [fs:H_ATTEMPT]
-    mov [ss:0x1fae], ax
+    mov [ss:GLOBAL(0x1fae)], ax
     mov ax, [fs:H_COMPLETED]
     mov [gs:bp+0xc], ax
     mov ax, [fs:H_PROJECTILES]
@@ -2250,7 +2268,7 @@ native_restore_extras:
 native_hud:
     push gs
     les bx, [gs:bp+0x442]
-    lgs di, [ss:0xa5d6]
+    lgs di, [ss:GLOBAL(0xa5d6)]
     mov ax, [es:bx+0x5e]
     mov [gs:di+0x12], ax
     mov ax, [es:bx+0x62]
@@ -2298,6 +2316,18 @@ native_path:
     jnz .byte
     pop di
     pop si
+    cmp si, native_save_name
+    je .level_path
+    cmp si, native_previous_name
+    je .level_path
+    cmp si, native_temp_name
+    jne .done
+.level_path:
+    mov al, [N_LEVEL]
+    test al, al
+    jz .done
+    mov [di+3], al
+.done:
     pop ax
     ret
 
@@ -2533,11 +2563,11 @@ native_resource_check:
     mov ax, 7
     call native_io
     jne .bad
-    cmp dword [N_CRC], 2718099
+    cmp dword [N_CRC], RESOURCE_SIZE
     jne .bad
     mov eax, [60]
     xor eax, 0xffffffff
-    cmp eax, 0x52a5433e
+    cmp eax, RESOURCE_CRC
     jne .bad
     mov word [N_RES_OK], 1
 .done:
@@ -2551,10 +2581,10 @@ native_resource_check:
     test ax, ax
     ret
 
-native_save_name: db 'KRN1.SAV',0
-native_previous_name: db 'KRN1.PRV',0
-native_temp_name: db 'KRN1.TMP',0
-native_resource_name: db 'PKR.RES',0
+native_save_name: db SAVE_PREFIX,'.SAV',0
+native_previous_name: db SAVE_PREFIX,'.PRV',0
+native_temp_name: db SAVE_PREFIX,'.TMP',0
+native_resource_name: db RESOURCE_NAME,0
 
 ; Table-driven reflected CRC-32. Trusted bounded callers supply <=4096 bytes.
 ; Same polynomial and wire result as the independently tested KRS transport.

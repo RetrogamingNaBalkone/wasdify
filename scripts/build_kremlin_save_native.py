@@ -1,4 +1,4 @@
-"""Reproduce the experimental RUS level-1 autonomous NASM payload.
+"""Reproduce the experimental RUS/ENG autonomous NASM payload for levels 1-3.
 
 No reference game bytes are needed to assemble. This is a development builder,
 not runtime code or a registered WASDify patch.
@@ -68,13 +68,16 @@ def tables():
         'native_crc_table: dd ' + ','.join(hex(n) for n in crc_table) + '\n').encode('ascii')
 
 
-def build(nasm, output, *, test_gates=False):
+def build(nasm, output, *, test_gates=False, language='ru'):
+    if language not in ('ru', 'en'):
+        raise ValueError('native_language_unsupported')
     generated = PATCHES / 'kremlin_save_native_tables.inc'
     expected = tables()
     if generated.read_bytes().replace(b'\r\n', b'\n') != expected:
         raise ValueError('native_tables_stale: run with --tables')
     output.parent.mkdir(parents=True, exist_ok=True)
-    subprocess.run([str(nasm), '-f', 'bin', *(['-DKRS_NATIVE_TEST=1'] if test_gates else []), '-I', str(PATCHES) + '/',
+    subprocess.run([str(nasm), '-f', 'bin', f'-DENG={int(language == "en")}',
+                    *(['-DKRS_NATIVE_TEST=1'] if test_gates else []), '-I', str(PATCHES) + '/',
                     str(PATCHES / 'kremlin_save_native.asm'), '-o', str(output)], check=True)
     return hashlib.sha256(output.read_bytes()).hexdigest()
 
@@ -82,9 +85,11 @@ def build(nasm, output, *, test_gates=False):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--nasm', type=Path, default=ROOT / 'build/tools/nasm-2.16.03/nasm.exe')
-    parser.add_argument('--output', type=Path, default=ROOT / 'build/save-research/native-ru.bin')
+    parser.add_argument('--output', type=Path)
     parser.add_argument('--tables', action='store_true')
+    parser.add_argument('--language', choices=('ru', 'en'), default='ru')
     args = parser.parse_args()
     if args.tables:
         (PATCHES / 'kremlin_save_native_tables.inc').write_bytes(tables())
-    print(build(args.nasm, args.output))
+    output = args.output or ROOT / f'build/save-research/native-{args.language}.bin'
+    print(build(args.nasm, output, language=args.language))

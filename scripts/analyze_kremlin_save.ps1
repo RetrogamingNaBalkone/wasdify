@@ -2,7 +2,7 @@ param(
     [ValidateSet('ru', 'en')][string]$Language = 'ru',
     [string]$GhidraHome = 'C:/Users/dspev/AppData/Local/Programs/Ghidra/ghidra_12.1.2_PUBLIC',
     [string]$JavaHome = 'C:/Users/dspev/AppData/Local/Programs/Ghidra/java/jdk-21.0.12.1+1',
-    [ValidateSet('continuation', 'state', 'live', 'gaps')][string]$Scope = 'continuation'
+    [ValidateSet('continuation', 'state', 'live', 'gaps', 'levels')][string]$Scope = 'continuation'
 )
 # Development only. Import into an ignored, disposable project; never save a
 # program or write to the existing research projects or reference executables.
@@ -23,6 +23,13 @@ $taskProfiles = @{
     }
 }
 $taskProfile = $taskProfiles[$Language]
+if ($Scope -eq 'levels') {
+    if ($Language -eq 'en') {
+        $taskProfile.Addresses = '1008:0936,1008:0aa9,1020:2866,1020:2960,1030:02aa,1030:0000,1030:0079,1030:01ea,1030:0fdb,1020:1efc,1050:15db,1050:18c0,1068:0554,1078:18cf'
+    } else {
+        $taskProfile.Addresses = '1008:0545,1008:0719,1098:0000,1098:004f,1098:0ef7,1068:2368,1068:193e'
+    }
+}
 if ($Scope -eq 'live') {
     if ($Language -ne 'ru') { throw 'Live reload currently targets RUS only' }
     $taskProfile.Addresses = '1008:0719,1008:02f7,1008:0545,1008:069c,1068:193e,1098:0000,1098:004f,1098:02a7,10c0:155d,10c0:1639,1038:0108,1110:0355,1110:037a,1110:0524'
@@ -55,6 +62,30 @@ $taskStem = "$Scope-$Language"
 $taskFile = Join-Path "$taskRoot/originals/games/pkr" $taskProfile.File
 if ((Get-FileHash -LiteralPath $taskFile -Algorithm SHA256).Hash.ToLowerInvariant() -ne $taskProfile.Hash) {
     throw 'The reference version differs from the researched sample'
+}
+if ($Scope -eq 'levels' -and $Language -eq 'en') {
+    # Export all class methods in the exact ENG sample, including definitions
+    # absent from the original first-level RUS inventory. These are analysis
+    # addresses only; this scan never authorizes patch compatibility.
+    $taskBytes = [IO.File]::ReadAllBytes($taskFile)
+    $taskNe = [BitConverter]::ToInt32($taskBytes, 60)
+    $taskSegmentEntry = $taskNe + 64 + (5 - 1) * 8
+    $taskStart = [BitConverter]::ToUInt16($taskBytes, $taskSegmentEntry) -shl 9
+    $taskLength = [BitConverter]::ToUInt16($taskBytes, $taskSegmentEntry + 2)
+    $taskPrefix = [byte[]](0x8c,0xd0,0x90,0x45,0x55,0x8b,0xec,0x1e,0x8e,0xd8)
+    $taskMethods = @()
+    for ($taskOffset = 0; $taskOffset -le $taskLength - $taskPrefix.Length; $taskOffset++) {
+        $taskMatch = $true
+        for ($taskByte = 0; $taskByte -lt $taskPrefix.Length; $taskByte++) {
+            if ($taskBytes[$taskStart + $taskOffset + $taskByte] -ne $taskPrefix[$taskByte]) {
+                $taskMatch = $false
+                break
+            }
+        }
+        if ($taskMatch) { $taskMethods += ('1020:{0:x4}' -f $taskOffset) }
+    }
+    $taskProfile.Addresses = (($taskProfile.Addresses.Split(',') + $taskMethods) |
+        Sort-Object -Unique) -join ','
 }
 $taskPreviousLocalAppData = $env:LOCALAPPDATA
 try {
