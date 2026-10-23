@@ -290,8 +290,7 @@ krs_death_trampoline:
 %ifdef KRS_AUTONOMOUS
     cld
     call krs_native_death
-    mov word [46], 1
-%endif
+%else
 .hold:
     cmp word [116], 0
     je .release
@@ -299,6 +298,7 @@ krs_death_trampoline:
 .release:
     cmp word [46], 0
     je .hold
+%endif
     call read_time
     sub eax, [52]
     mov [56], eax
@@ -370,8 +370,7 @@ krs_early_trampoline:
 %ifdef KRS_AUTONOMOUS
     cld
     call krs_native_early
-    mov word [46], 1
-%endif
+%else
 .hold:
     cmp word [116], 0
     je .release
@@ -379,6 +378,7 @@ krs_early_trampoline:
 .release:
     cmp word [46], 0
     je .hold
+%endif
     mov word [44], 0
     mov word [156], 0
     inc word [DONE]

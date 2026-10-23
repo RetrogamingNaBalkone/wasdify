@@ -68,8 +68,9 @@ powershell -NoProfile -File scripts/analyze_kremlin_save.ps1 -Language ru -Scope
 Структура экспериментального KRN1 не меняется. Первые четыре байта — `KRN1`,
 следующие четыре — `RUS1`…`RUS3` либо `ENG1`…`ENG3`. Проверяются язык, уровень,
 отпечаток схемы, ресурс и CRC всего файла. Переименование файла или пересчёт
-CRC не разрешает загрузку другого уровня/языка. Старые native-файлы первого
-уровня RUS сохраняют прежнюю идентичность; `KRS1.PROTO` не мигрируется.
+CRC не разрешает загрузку другого уровня/языка. Совпадение идентичности с ранними
+native-файлами первого уровня RUS не обязывает сохранять совместимость:
+формат ещё не опубликован. `KRS1.PROTO` не мигрируется.
 
 ## Сборка и запуск
 
@@ -95,9 +96,9 @@ nasm -f bin -DENG=0 -I src/wasdify/patches/ src/wasdify/patches/kremlin_save_nat
 nasm -f bin -DENG=1 -I src/wasdify/patches/ src/wasdify/patches/kremlin_save_native.asm -o build/save-research/native-en.bin
 ```
 
-Оба результата — 12 612 байт. SHA-256 RUS:
-`979f0103fb1d4563096b45998d0bca8a4a339b4fc40a87ec7e0b94bbbc3e1292`;
-ENG: `16be515a8dcf7a7668a3d5b494bc7934ad9e8f7bc30d0fca9f5cfef28635cf18`.
+После аудита перед шагом 4 оба результата — 12 412 байт. SHA-256 RUS:
+`46205cc690645afd020ed79d23277ffd38e7e1de7c839b8a0b83ff7f284aab9b`;
+ENG: `a5a820225afac2107012ebd1d00ccf7790c0989b07970c79a8dc53af48aaac75`.
 Происхождение, файловая транзакция и восстановление описаны также в
 [документе автономного payload](save-load-native.md).
 

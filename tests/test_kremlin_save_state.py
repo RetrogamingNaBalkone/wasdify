@@ -232,13 +232,11 @@ class WorldStateTests(unittest.TestCase):
         snapshot = old.capture()
         fresh.apply(fresh.plan(snapshot))
         self.assertEqual(fresh.capture(100000), snapshot)
-        legacy = copy.deepcopy(snapshot)
-        record = next(item for item in legacy["objects"] if item["id"] == 33)
+        incomplete = copy.deepcopy(snapshot)
+        record = next(item for item in incomplete["objects"] if item["id"] == 33)
         del record["fields"]["frame"], record["fields"]["frame_interval"]
-        normalized = state.with_floor_defaults(legacy)
-        self.assertNotIn("frame", record["fields"])
-        fresh.apply(fresh.plan(normalized))
-        self.assertEqual(fresh.read(fresh.objects[33].address + 0x50, 4), struct.pack("<hh", 18, 0))
+        with self.assertRaises(SaveFormatError):
+            fresh.plan(incomplete)
         for name, value in (("frame", 19), ("frame", -1), ("frame_interval", -1)):
             invalid = copy.deepcopy(snapshot)
             next(item for item in invalid["objects"] if item["id"] == 33)["fields"][name] = value

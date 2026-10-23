@@ -74,18 +74,6 @@ MAP_OFFSETS = (0x608a, 0x718e, 0x8292, 0x9396)
 IMAGE_TRANSFORM_MASK = 0x0cc0  # 10F8:0592/05C9: fractional crop on either axis
 
 
-def with_floor_defaults(state):
-    """Supply the native idle phase missing from earlier prototype files."""
-    if "objects" not in state:
-        return state
-    records = []
-    for record in state["objects"]:
-        if record["type"] == 12 and not {"frame", "frame_interval"} & record["fields"].keys():
-            record = {**record, "fields": {**record["fields"], "frame": 18, "frame_interval": 0}}
-        records.append(record)
-    return {**state, "objects": records}
-
-
 @dataclass(frozen=True)
 class Resource:
     pointer: bytes
@@ -338,10 +326,6 @@ def plan_restore(state, read, objects, resources, ds, world, wall_ticks):
         values = record["fields"]
         layout = field_layout(obj, resources, spawned=bool(record["template"]),
                               active=obj.native_type == 9 and values.get("ai_state", 0) != 0)
-        # Earlier prototype files did not record the floor-effect phase.
-        # Their documented fallback is the native constructor's idle phase.
-        if obj.native_type == 12 and set(values) == set(layout) - {"frame", "frame_interval"}:
-            values = {**values, "frame": 18, "frame_interval": 0}
         require(set(values) == set(layout), "state_fields")
         if obj.native_type == 9:
             require(values["ai_state"] in range(5), "ai_state")

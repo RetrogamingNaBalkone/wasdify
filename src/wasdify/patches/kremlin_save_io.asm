@@ -67,7 +67,7 @@ trampoline:
     je .frame_request
 %endif
     jmp .resume
-%endif
+%else
     cmp word [REQUEST], 0
     je .resume
     cmp word [REQUEST], 13
@@ -77,6 +77,14 @@ trampoline:
     je .frame_request
 %endif
     jmp .dispatch
+%endif
+; Only research builds accept host requests or wait for a host release.
+%ifndef KRS_AUTONOMOUS
+%define KRS_HOST_GATE 1
+%elifdef KRS_NATIVE_TEST
+%define KRS_HOST_GATE 1
+%endif
+%ifdef KRS_HOST_GATE
 .frame_request:
     ; The observer may freeze only at the main loop's clock-start call.
     ; Never stop halfway through an event callback or constructor.
@@ -121,6 +129,7 @@ trampoline:
     jmp .resume
 .dispatch:
     call dispatch
+%endif
 .resume:
     pop gs
     pop fs

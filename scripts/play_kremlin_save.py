@@ -90,16 +90,14 @@ def _decode(raw):
     payload = envelope["payload"]
     if hashlib.sha256(canonical(payload)).hexdigest() != envelope["sha256"]:
         raise ValueError("snapshot_checksum")
-    sections = {"revision", "resources", "baseline_inventory", "state", "events", "doors"}
-    if set(payload) not in (sections, sections | {"next_attempt"}):
+    sections = {"revision", "resources", "baseline_inventory", "state", "events", "doors", "next_attempt"}
+    if set(payload) != sections:
         raise ValueError("snapshot_sections")
-    if "next_attempt" in payload and (type(payload["next_attempt"]) is not int or
-                                     not 1 <= payload["next_attempt"] <= 32767):
+    if type(payload["next_attempt"]) is not int or not 1 <= payload["next_attempt"] <= 32767:
         raise ValueError("snapshot_attempt")
     if payload["revision"] != REVISION:
         raise ValueError("snapshot_revision")
     payload["state"]["maps"] = [bytes.fromhex(layer) for layer in payload["state"]["maps"]]
-    payload["state"] = state_adapter.with_floor_defaults(payload["state"])
     return payload
 
 
@@ -535,7 +533,7 @@ class Session:
             interface = current.pointer(self.ds + 0xa5d6, 0x2c)
             plan += state_adapter.plan_hud(packet["state"], current.read, interface)
             plan += self.input_plan(current)
-            attempt = packet.get("next_attempt", max(2, current.u16(self.ds + 0x1fae)))
+            attempt = packet["next_attempt"]
             plan += (event_adapter.NativeWrite(self.ds + 0x1fae,
                 current.read(self.ds + 0x1fae, 2), struct.pack("<H", attempt)),)
             context["mutating"] = True

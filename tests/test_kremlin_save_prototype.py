@@ -22,18 +22,20 @@ finally:
 
 def packet():
     return {"revision": prototype.REVISION, "resources": [], "baseline_inventory": [],
-            "state": {"maps": [bytes(4096)] * 4}, "events": [], "doors": []}
+            "state": {"maps": [bytes(4096)] * 4}, "events": [], "doors": [], "next_attempt": 2}
 
 
 class PrototypeFileTests(unittest.TestCase):
-    def test_optional_attempt_counter_preserves_legacy_saves(self):
-        legacy = packet()
-        self.assertEqual(prototype.decode(prototype.encode(legacy)), legacy)
-        current = {**legacy, 'next_attempt': 4}
+    def test_attempt_counter_is_required(self):
+        current = {**packet(), 'next_attempt': 4}
         self.assertEqual(prototype.decode(prototype.encode(current)), current)
+        incomplete = packet()
+        del incomplete['next_attempt']
+        with self.assertRaisesRegex(ValueError, 'snapshot_sections'):
+            prototype.encode(incomplete)
         for invalid in (0, -1, True, '2', 32768):
             with self.assertRaisesRegex(ValueError, 'snapshot_attempt'):
-                prototype.encode({**legacy, 'next_attempt': invalid})
+                prototype.encode({**current, 'next_attempt': invalid})
 
     def test_game_message_keys_and_choice_labels_match_both_languages(self):
         messages = json.loads(files('wasdify').joinpath('data/kremlin_save_prototype_messages.json').read_text('utf-8'))
